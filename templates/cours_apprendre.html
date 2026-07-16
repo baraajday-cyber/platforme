@@ -1,0 +1,239 @@
+{% extends "base.html" %}
+{% block title %}📖 {{ cours.titre }} — Apprentissage{% endblock %}
+{% block extra_css %}
+<style>
+.tab-section{background:white;border-radius:var(--radius);box-shadow:var(--shadow);overflow:hidden;margin-bottom:24px}
+.tab-header{display:flex;border-bottom:3px solid #f1f5f9;background:#f8fafc}
+.tab-btn{padding:14px 22px;font-weight:800;font-size:.88rem;border:none;background:none;cursor:pointer;transition:all .2s;border-bottom:3px solid transparent;margin-bottom:-3px}
+.tab-btn.active{color:var(--sky);border-bottom-color:var(--sky);background:white}
+.tab-btn:hover{color:var(--sky)}
+.tab-pane{display:none;padding:24px}
+.tab-pane.active{display:block}
+.resource-card{background:#f8fafc;border-radius:14px;padding:18px;margin-bottom:12px;border:2px solid transparent;transition:all .2s;display:flex;align-items:center;gap:16px}
+.resource-card:hover{border-color:var(--sky);background:#f0f4ff}
+.resource-icon{width:52px;height:52px;border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:1.5rem;flex-shrink:0}
+.video-embed{width:100%;border-radius:14px;aspect-ratio:16/9;border:none}
+.travail-card{background:white;border-radius:14px;padding:20px;margin-bottom:14px;box-shadow:var(--shadow);border-left:4px solid var(--sun)}
+.travail-card.rendu{border-left-color:var(--mint)}
+.seance-card{background:#f0f4ff;border-radius:14px;padding:18px;margin-bottom:12px;border-left:4px solid var(--sky)}
+.seance-card.past{opacity:.6}
+.rendu-form{background:#fffbeb;border-radius:12px;padding:18px;margin-top:14px;border:2px dashed var(--sun)}
+</style>
+{% endblock %}
+{% block content %}
+<div class="page-header">
+  <div class="container">
+    <nav aria-label="breadcrumb" class="mb-2">
+      <ol class="breadcrumb mb-0">
+        <li class="breadcrumb-item"><a href="{{ url_for('liste_cours') }}" class="text-white-50">📚 Cours</a></li>
+        <li class="breadcrumb-item active text-sun">{{ cours.titre[:40] }}</li>
+      </ol>
+    </nav>
+    <h2>📖 {{ cours.titre }}</h2>
+    <div class="d-flex flex-wrap gap-3 mt-2" style="color:rgba(255,255,255,.65);font-size:.85rem;font-weight:700">
+      {% if cours.matiere %}<span>{{ cours.matiere.icone }} {{ cours.matiere.nom }}</span>{% endif %}
+      <span>👨‍🏫 {{ cours.enseignant.prenom }} {{ cours.enseignant.nom }}</span>
+      <span>📁 {{ cours.ressources|length }} ressource(s)</span>
+      <span>📝 {{ cours.travaux|length }} travail/travaux</span>
+    </div>
+  </div>
+</div>
+
+<div class="container-fluid px-4 pb-5">
+
+  <!-- TABS -->
+  <div class="tab-section">
+    <div class="tab-header">
+      <button class="tab-btn active" onclick="showTab('pdfs')">📕 PDFs ({{ pdfs|length }})</button>
+      <button class="tab-btn" onclick="showTab('videos')">🎬 Vidéos ({{ videos|length }})</button>
+      <button class="tab-btn" onclick="showTab('autres')">📎 Autres ({{ autres|length }})</button>
+      <button class="tab-btn" onclick="showTab('travaux')">📝 Travaux ({{ travaux_info|length }})</button>
+      <button class="tab-btn" onclick="showTab('seances')">📅 Séances ({{ seances|length }})</button>
+    </div>
+
+    <!-- PDFs -->
+    <div id="tab-pdfs" class="tab-pane active">
+      {% if pdfs %}
+      {% for r in pdfs %}
+      <div class="resource-card">
+        <div class="resource-icon" style="background:#fee2e2">📕</div>
+        <div class="flex-fill">
+          <div class="fw-800">{{ r.titre }}</div>
+          {% if r.description %}<div class="text-muted small fw-600">{{ r.description }}</div>{% endif %}
+          <div class="text-muted small fw-600">Déposé le {{ r.date_depot.strftime('%d/%m/%Y') }}</div>
+        </div>
+        <div class="d-flex gap-2">
+          {% if r.nom_fichier %}
+          <!-- Visionner inline -->
+          <button class="btn btn-fun btn-coral btn-sm fw-800" onclick="togglePdf('pdf-{{ r.id }}')">👁️ Visionner</button>
+          <a href="{{ url_for('download_file', filename=r.nom_fichier) }}" class="btn btn-fun btn-outline-fun btn-sm fw-700">⬇️ Télécharger</a>
+          {% elif r.url_externe %}
+          <a href="{{ r.url_externe }}" target="_blank" class="btn btn-fun btn-coral btn-sm fw-800">🔗 Ouvrir</a>
+          {% endif %}
+        </div>
+      </div>
+      {% if r.nom_fichier %}
+      <div id="pdf-{{ r.id }}" style="display:none;margin-bottom:16px;border-radius:14px;overflow:hidden">
+        <iframe src="{{ url_for('download_file', filename=r.nom_fichier) }}" style="width:100%;height:600px;border:none"></iframe>
+      </div>
+      {% endif %}
+      {% endfor %}
+      {% else %}
+      <div class="text-center py-5 text-muted fw-600">📭 Aucun PDF dans ce cours</div>
+      {% endif %}
+    </div>
+
+    <!-- VIDÉOS -->
+    <div id="tab-videos" class="tab-pane">
+      {% if videos %}
+      {% for r in videos %}
+      <div class="mb-4">
+        <div class="fw-800 mb-2">{{ r.titre }}</div>
+        {% if r.description %}<div class="text-muted small fw-600 mb-2">{{ r.description }}</div>{% endif %}
+        {% if r.url_externe %}
+          {% if 'youtube.com' in r.url_externe or 'youtu.be' in r.url_externe %}
+          {% set vid_id = r.url_externe.split('v=')[-1].split('&')[0] if 'v=' in r.url_externe else r.url_externe.split('/')[-1] %}
+          <iframe class="video-embed" src="https://www.youtube.com/embed/{{ vid_id }}" allowfullscreen></iframe>
+          {% else %}
+          <a href="{{ r.url_externe }}" target="_blank" class="btn btn-fun btn-coral btn-sm">🔗 Voir la vidéo</a>
+          {% endif %}
+        {% elif r.nom_fichier %}
+        <video controls style="width:100%;border-radius:14px;max-height:450px">
+          <source src="{{ url_for('download_file', filename=r.nom_fichier) }}">
+          Votre navigateur ne supporte pas la vidéo.
+        </video>
+        {% endif %}
+      </div>
+      {% endfor %}
+      {% else %}
+      <div class="text-center py-5 text-muted fw-600">📭 Aucune vidéo dans ce cours</div>
+      {% endif %}
+    </div>
+
+    <!-- AUTRES FICHIERS -->
+    <div id="tab-autres" class="tab-pane">
+      {% if autres %}
+      {% for r in autres %}
+      <div class="resource-card">
+        <div class="resource-icon" style="background:#f0f4ff">📎</div>
+        <div class="flex-fill">
+          <div class="fw-800">{{ r.titre }}</div>
+          {% if r.description %}<div class="text-muted small fw-600">{{ r.description }}</div>{% endif %}
+        </div>
+        {% if r.nom_fichier %}<a href="{{ url_for('download_file', filename=r.nom_fichier) }}" class="btn btn-fun btn-sky btn-sm fw-700">⬇️ Télécharger</a>{% endif %}
+        {% if r.url_externe %}<a href="{{ r.url_externe }}" target="_blank" class="btn btn-fun btn-sky btn-sm fw-700">🔗 Ouvrir</a>{% endif %}
+      </div>
+      {% endfor %}
+      {% else %}
+      <div class="text-center py-5 text-muted fw-600">📭 Aucun autre fichier</div>
+      {% endif %}
+    </div>
+
+    <!-- TRAVAUX -->
+    <div id="tab-travaux" class="tab-pane">
+      {% if travaux_info %}
+      {% for item in travaux_info %}
+      <div class="travail-card {{ 'rendu' if item.rendu }}">
+        <div class="d-flex justify-content-between align-items-start mb-2">
+          <h6 class="fw-800 mb-0">📝 {{ item.travail.titre }}</h6>
+          {% if item.rendu %}
+            {% if item.rendu.note is not none %}
+            <span class="badge-fun" style="background:{{ '#d1fae5' if item.rendu.note >= 10 else '#fee2e2' }};color:{{ '#065f46' if item.rendu.note >= 10 else '#991b1b' }};font-size:.9rem;padding:6px 14px">⭐ {{ item.rendu.note }}/20</span>
+            {% else %}
+            <span class="badge-fun badge-publie">✅ Rendu</span>
+            {% endif %}
+          {% else %}
+          <span class="badge-fun" style="background:#fff1f0;color:var(--coral)">⏳ À rendre</span>
+          {% endif %}
+        </div>
+        <p class="fw-600 small mb-2" style="line-height:1.7;color:#374151">{{ item.travail.description }}</p>
+        {% if item.travail.date_limite %}
+        <div class="small fw-700 mb-2" style="color:var(--coral)">⏰ Date limite : {{ item.travail.date_limite.strftime('%d/%m/%Y %H:%M') }}</div>
+        {% endif %}
+        {% if item.travail.nom_fichier %}
+        <a href="{{ url_for('download_file', filename=item.travail.nom_fichier) }}" class="btn btn-fun btn-sun btn-sm mb-2">📎 Télécharger le sujet</a>
+        {% endif %}
+
+        <!-- Feedback si noté -->
+        {% if item.rendu and item.rendu.feedback %}
+        <div style="background:#f0fdf4;border-radius:10px;padding:12px;margin-top:8px;border-left:3px solid var(--mint)">
+          <div class="fw-800 small text-mint mb-1">💬 Feedback du professeur :</div>
+          <div class="small fw-600" style="color:#374151">{{ item.rendu.feedback }}</div>
+        </div>
+        {% endif %}
+
+        <!-- Formulaire de rendu pour élève -->
+        {% if current_user.role == 'eleve' %}
+        <div class="rendu-form">
+          <div class="fw-800 small mb-2">{{ '📤 Mettre à jour mon rendu' if item.rendu else '📤 Rendre ce travail' }}</div>
+          <form method="POST" action="{{ url_for('student_rendre_travail', tid=item.travail.id) }}" enctype="multipart/form-data">
+            <div class="mb-2">
+              <input type="file" name="fichier" class="form-control-fun" style="font-size:.85rem;padding:8px 12px" accept=".pdf,.docx,.zip,.rar">
+            </div>
+            <div class="mb-2">
+              <textarea name="commentaire" class="form-control-fun" rows="2" style="font-size:.85rem;padding:8px 12px" placeholder="Commentaire (optionnel)...">{{ item.rendu.commentaire if item.rendu else '' }}</textarea>
+            </div>
+            <button type="submit" class="btn btn-fun btn-sun fw-800 w-100" style="font-size:.85rem">
+              {{ '🔄 Mettre à jour' if item.rendu else '🚀 Rendre le travail' }}
+            </button>
+          </form>
+        </div>
+        {% endif %}
+      </div>
+      {% endfor %}
+      {% else %}
+      <div class="text-center py-5 text-muted fw-600">📭 Aucun travail dans ce cours</div>
+      {% endif %}
+    </div>
+
+    <!-- SÉANCES -->
+    <div id="tab-seances" class="tab-pane">
+      {% if seances %}
+      {% set now = now() %}
+      {% for s in seances %}
+      <div class="seance-card {{ 'past' if s.date_seance < now }}">
+        <div class="d-flex justify-content-between align-items-start">
+          <div class="flex-fill">
+            <div class="fw-800 mb-1">📅 {{ s.titre }}</div>
+            {% if s.description %}<div class="text-muted small fw-600 mb-1">{{ s.description }}</div>{% endif %}
+            <div class="d-flex gap-3 small fw-700">
+              <span class="text-sky">{{ s.date_seance.strftime('%d/%m/%Y à %H:%M') }}</span>
+              <span class="text-muted">⏱️ {{ s.duree }} min</span>
+            </div>
+          </div>
+          <div class="ms-3">
+            {% if s.lien_meet %}
+              {% if s.date_seance >= now %}
+              <a href="{{ s.lien_meet }}" target="_blank" class="btn btn-fun btn-sky fw-800" style="font-size:.85rem">🔗 Rejoindre</a>
+              {% else %}
+              <span class="badge-fun badge-brouillon">Terminée</span>
+              {% endif %}
+            {% else %}
+            <span class="badge-fun" style="background:#f0f4ff;color:var(--sky)">🔗 Lien bientôt</span>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+      {% endfor %}
+      {% else %}
+      <div class="text-center py-5 text-muted fw-600">📭 Aucune séance planifiée pour ce cours</div>
+      {% endif %}
+    </div>
+
+  </div>
+</div>
+{% endblock %}
+{% block extra_js %}
+<script>
+function showTab(name) {
+  document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('tab-' + name).classList.add('active');
+  event.target.classList.add('active');
+}
+function togglePdf(id) {
+  const el = document.getElementById(id);
+  el.style.display = el.style.display === 'none' ? 'block' : 'none';
+}
+</script>
+{% endblock %}

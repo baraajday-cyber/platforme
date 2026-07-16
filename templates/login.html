@@ -1,0 +1,69 @@
+{% extends "base.html" %}
+{% block title %}🔑 Connexion — BrainBurst{% endblock %}
+{% block extra_css %}
+<style>
+.login-wrap{min-height:100vh;display:flex;align-items:center;background:linear-gradient(135deg,var(--dark) 0%,#16213e 100%);padding:40px 0}
+.login-card{background:white;border-radius:24px;overflow:hidden;box-shadow:0 30px 80px rgba(0,0,0,.3)}
+.login-left{background:linear-gradient(160deg,var(--sky) 0%,var(--violet) 100%);padding:50px 36px;color:white;display:flex;flex-direction:column;justify-content:center}
+.login-right{padding:48px 40px}
+.inp-wrap{position:relative}
+.inp-wrap .ico{position:absolute;left:13px;top:50%;transform:translateY(-50%);font-size:1rem;z-index:2}
+.inp-wrap input{padding-left:40px!important}
+</style>
+{% endblock %}
+{% block content %}
+<div class="login-wrap">
+  <div class="container">
+    <div class="row justify-content-center">
+      <div class="col-lg-8 col-xl-7">
+        <div class="login-card">
+          <div class="row g-0">
+            <div class="col-md-5 login-left d-none d-md-flex">
+              <div>
+                <div style="font-size:3rem;margin-bottom:14px" class="emoji-bounce">👋</div>
+                <h2 style="font-family:'Fredoka One',cursive;font-size:1.9rem;margin-bottom:10px">Bon retour !</h2>
+                <p style="opacity:.88;font-weight:600;font-size:.95rem;line-height:1.7;margin-bottom:28px">
+                  Ton espace éducatif t'attend. Connecte-toi pour accéder à tes cours, calendrier et plus encore.
+                </p>
+                <div style="background:rgba(255,255,255,.15);border-radius:14px;padding:16px">
+                  <div class="fw-800 small mb-2">🔐 Compte Admin par défaut :</div>
+                  <div class="small fw-700" style="opacity:.85">admin@brainburst.com</div>
+                  <div class="small fw-700" style="opacity:.85">Admin1234!</div>
+                </div>
+              </div>
+            </div>
+            <div class="col-md-7 login-right">
+              <h3 style="font-family:'Fredoka One',cursive;font-size:1.9rem;margin-bottom:4px">Connexion 🔑</h3>
+              <p class="text-muted fw-600 mb-4 small">Entrez vos identifiants fournis par l'administrateur.</p>
+              <form method="POST">
+                <div class="mb-3">
+                  <label class="lbl">📧 Email</label>
+                  <div class="inp-wrap">
+                    <span class="ico">📧</span>
+                    <input type="email" name="email" class="form-control-fun" placeholder="votre@email.com" required>
+                  </div>
+                </div>
+                <div class="mb-3">
+                  <label class="lbl">🔒 Mot de passe</label>
+                  <div class="inp-wrap">
+                    <span class="ico">🔒</span>
+                    <input type="password" name="password" class="form-control-fun" placeholder="••••••••" required>
+                  </div>
+                </div>
+                <div class="form-check mb-4">
+                  <input class="form-check-input" type="checkbox" name="remember" id="rem">
+                  <label class="form-check-label fw-700 small" for="rem">Se souvenir de moi</label>
+                </div>
+                <button type="submit" class="btn btn-fun btn-sky w-100 py-3 fw-800" style="font-size:1rem">🚀 Se connecter</button>
+              </form>
+              <p class="text-center text-muted small fw-600 mt-4 mb-0">
+                Pas de compte ? Contactez l'administrateur de la plateforme.
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

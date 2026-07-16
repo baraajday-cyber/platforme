@@ -1,0 +1,128 @@
+{% extends "base.html" %}
+{% block title %}➕ Créer un cours & déposer — BrainBurst{% endblock %}
+{% block extra_css %}
+<style>
+.page-header{margin-bottom:18px}
+.block{background:white;border-radius:var(--radius);padding:22px;box-shadow:var(--shadow);margin-bottom:22px}
+.small-help{font-size:.8rem;color:rgba(15,23,42,.6);font-weight:600}
+.file-drop{border:2px dashed #cbd5e1;border-radius:14px;padding:18px}
+.badge-preview{font-size:.75rem;font-weight:800;padding:6px 10px;border-radius:999px;background:#f8fafc;border:1px solid #e5e7eb;color:#0f172a}
+</style>
+{% endblock %}
+{% block content %}
+<div class="page-header">
+  <div class="container">
+    <nav aria-label="breadcrumb" class="mb-2">
+      <ol class="breadcrumb mb-0">
+        <li class="breadcrumb-item"><a href="{{ url_for('teacher_dashboard') }}" class="text-white-50">Dashboard</a></li>
+        <li class="breadcrumb-item active text-sun">Créer + Déposer</li>
+      </ol>
+    </nav>
+    <h2>➕ Créer un cours & déposer des ressources (1 seule étape)</h2>
+    <p class="text-muted small fw-600 mb-0">Vous créez le cours puis vous déposez plusieurs PDFs/vidéos/lien(s) directement ici.</p>
+  </div>
+</div>
+
+<div class="container-fluid px-4 pb-5">
+  <div class="row g-4">
+    <div class="col-lg-8">
+      <div class="block">
+        <h5 class="fw-800 mb-3">1) Infos du cours</h5>
+        <form method="POST" enctype="multipart/form-data">
+          <div class="row g-3">
+            <div class="col-md-7">
+              <label class="lbl">Titre du cours *</label>
+              <input type="text" name="titre" class="form-control-fun" placeholder="Ex: Biologie 101" required>
+            </div>
+            <div class="col-md-5">
+              <label class="lbl">Niveau *</label>
+              <input type="text" name="niveau" class="form-control-fun" value="Débutant" required>
+            </div>
+
+            <div class="col-12">
+              <label class="lbl">Description *</label>
+              <textarea name="description" class="form-control-fun" rows="3" placeholder="Résumé du cours" required></textarea>
+            </div>
+
+            <div class="col-md-6">
+              <label class="lbl">Matière *</label>
+              <select name="matiere_id" class="form-select-fun" required>
+                <option value="">Choisir...</option>
+                {% for m in matieres %}
+                  <option value="{{ m.id }}">{{ m.icone }} {{ m.nom }}</option>
+                {% endfor %}
+              </select>
+            </div>
+
+            <div class="col-md-6">
+              <label class="lbl">Publication</label>
+              <div class="form-check form-switch">
+                <input class="form-check-input" type="checkbox" role="switch" name="publie" id="publie" checked>
+                <label class="form-check-label fw-800" for="publie">✅ Publier le cours</label>
+              </div>
+              <div class="small-help mt-2">Si désactivé → cours en brouillon (peut ne pas apparaître côté élèves).</div>
+            </div>
+          </div>
+
+          <hr class="my-4" />
+
+          <h5 class="fw-800 mb-3">2) Dépôt de ressources (plusieurs)</h5>
+          <div class="small-help mb-3">Vous pouvez envoyer des fichiers (PDF/vidéo…) et aussi des liens externes. Les ressources sont créées en une seule soumission.</div>
+
+          <div class="row g-3">
+            <div class="col-12">
+              <div class="file-drop">
+                <label class="lbl">📁 Fichiers (PDF / vidéo…)</label>
+                <input type="file" name="fichiers" class="form-control-fun" multiple accept=".pdf,.mp4,.avi,.mov,.png,.jpg,.jpeg,.pptx,.docx,.zip,.rar">
+                <div class="small-help mt-2">Astuce : sélectionnez plusieurs fichiers en Ctrl/Clic.</div>
+              </div>
+            </div>
+
+            <div class="col-md-6">
+              <label class="lbl">Titre des ressources (optionnel)</label>
+              <input type="text" name="titre_ressources" class="form-control-fun" placeholder="Si vous mettez un titre, il sera appliqué (sinon: nom du fichier)">
+            </div>
+            <div class="col-md-6">
+              <label class="lbl">Description ressources (optionnel)</label>
+              <input type="text" name="description_ressources" class="form-control-fun" placeholder="Texte affiché sous les ressources">
+            </div>
+
+            <div class="col-12">
+              <label class="lbl">🔗 Liens externes (1 par ligne)</label>
+              <textarea name="url_externe_list" class="form-control-fun" rows="4" placeholder="https://youtube.com/watch?v=...
+https://drive.google.com/..."> 
+              </textarea>
+              <div class="small-help mt-2">Les liens externes seront créés comme type <b>video</b> automatiquement.</div>
+            </div>
+
+            <div class="col-12">
+              <button type="submit" class="btn btn-fun btn-mint fw-900 w-100">🚀 Créer + Déposer</button>
+            </div>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <div class="col-lg-4">
+      <div class="block">
+        <h5 class="fw-800 mb-3">Aide rapide</h5>
+        <div class="d-flex flex-column gap-2">
+          <div class="badge-preview">Matière obligatoire</div>
+          <div class="badge-preview">Peut envoyer plusieurs fichiers</div>
+          <div class="badge-preview">Liens externes = vidéo</div>
+          <div class="badge-preview">Après création → redirection sur la page “contenu”</div>
+        </div>
+      </div>
+
+      <div class="block">
+        <h5 class="fw-800 mb-3">Sécurité (rappel)</h5>
+        <div class="small-help">
+          Seuls les enseignants peuvent créer ce dépôt.
+          Les fichiers sont stockés dans <code>static/uploads</code> et téléchargés via <code>/download/<filename></code>.
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+

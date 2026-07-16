@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% block title %}📚 Matières — Admin{% endblock %}
+{% block content %}
+<div class="page-header">
+  <div class="container">
+    <h2>📚 Gestion des matières</h2>
+  </div>
+</div>
+<div class="container-fluid px-4 pb-5">
+  <div class="d-flex justify-content-end mb-4">
+    <a href="{{ url_for('admin_matiere_creer') }}" class="btn btn-fun btn-coral fw-800">➕ Nouvelle matière</a>
+  </div>
+  <div class="row g-4">
+    {% for m in matieres %}
+    <div class="col-md-3 col-sm-6">
+      <div class="card-fun p-4 text-center">
+        <div style="font-size:2.5rem;margin-bottom:8px">{{ m.icone }}</div>
+        <div style="width:40px;height:4px;border-radius:2px;background:{{ m.couleur }};margin:0 auto 12px"></div>
+        <h5 class="fw-800 mb-1">{{ m.nom }}</h5>
+        {% if m.description %}<p class="text-muted small fw-600 mb-2">{{ m.description[:60] }}</p>{% endif %}
+        <div class="text-muted small fw-600 mb-3">📚 {{ m.cours|length }} cours</div>
+        <span class="badge-fun {{ 'badge-publie' if m.actif else 'badge-brouillon' }} mb-3 d-block">{{ '✅ Active' if m.actif else '🚫 Inactive' }}</span>
+        <div class="d-flex gap-2 justify-content-center">
+          <a href="{{ url_for('admin_matiere_editer', mid=m.id) }}" class="btn btn-fun btn-sky btn-sm">✏️ Modifier</a>
+          <form method="POST" action="{{ url_for('admin_matiere_supprimer', mid=m.id) }}" onsubmit="return confirm('Supprimer cette matière ?')">
+            <button type="submit" class="btn btn-fun btn-coral btn-sm">🗑️</button>
+          </form>
+        </div>
+      </div>
+    </div>
+    {% else %}
+    <div class="col-12 text-center py-5">
+      <div style="font-size:4rem;margin-bottom:12px">📭</div>
+      <h5 class="fw-800 mb-2">Aucune matière créée</h5>
+      <a href="{{ url_for('admin_matiere_creer') }}" class="btn btn-fun btn-coral mt-2">➕ Créer la première matière</a>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+{% endblock %}

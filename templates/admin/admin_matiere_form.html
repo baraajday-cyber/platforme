@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% block title %}{{ 'Modifier' if matiere else 'Nouvelle' }} matière{% endblock %}
+{% block content %}
+<div class="page-header"><div class="container"><h2>{{ '✏️ Modifier' if matiere else '➕ Nouvelle' }} matière</h2></div></div>
+<div class="container pb-5"><div class="row justify-content-center"><div class="col-lg-5">
+<div class="card-fun p-5">
+  <form method="POST">
+    <div class="mb-3">
+      <label class="lbl">📖 Nom de la matière *</label>
+      <input type="text" name="nom" class="form-control-fun" value="{{ matiere.nom if matiere else '' }}" placeholder="Ex : Mathématiques, Physique..." required>
+    </div>
+    <div class="mb-3">
+      <label class="lbl">📝 Description</label>
+      <textarea name="description" class="form-control-fun" rows="3" placeholder="Brève description...">{{ matiere.description if matiere else '' }}</textarea>
+    </div>
+    <div class="row g-3 mb-3">
+      <div class="col-6">
+        <label class="lbl">🎨 Couleur</label>
+        <div class="d-flex align-items-center gap-2">
+          <input type="color" name="couleur" value="{{ matiere.couleur if matiere else '#4D96FF' }}" style="width:50px;height:40px;border:none;border-radius:8px;cursor:pointer">
+          <span class="text-muted small fw-600">Couleur du calendrier</span>
+        </div>
+      </div>
+      <div class="col-6">
+        <label class="lbl">😊 Icône (emoji)</label>
+        <input type="text" name="icone" class="form-control-fun" value="{{ matiere.icone if matiere else '📚' }}" placeholder="📚" maxlength="5">
+      </div>
+    </div>
+    {% if matiere %}
+    <div class="mb-4">
+      <div class="form-check form-switch">
+        <input class="form-check-input" type="checkbox" name="actif" id="actif" style="width:44px;height:24px" {{ 'checked' if matiere.actif }}>
+        <label class="form-check-label fw-800" for="actif">✅ Matière active</label>
+      </div>
+    </div>
+    {% endif %}
+    <div class="d-flex gap-3">
+      <button type="submit" class="btn btn-fun btn-sky fw-800 px-5">💾 Enregistrer</button>
+      <a href="{{ url_for('admin_matieres') }}" class="btn btn-fun btn-outline-fun px-4">← Annuler</a>
+    </div>
+  </form>
+</div>
+</div></div></div>
+{% endblock %}

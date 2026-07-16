@@ -1,0 +1,79 @@
+{% extends "base.html" %}
+{% block title %}👥 Utilisateurs — Admin{% endblock %}
+{% block content %}
+<div class="page-header">
+  <div class="container">
+    <h2>👥 Gestion des utilisateurs</h2>
+  </div>
+</div>
+<div class="container-fluid px-4 pb-5">
+  <!-- Filtres + bouton créer -->
+  <div class="card-fun p-4 mb-4">
+    <div class="row g-3 align-items-end">
+      <form method="GET" class="row g-3 align-items-end w-100">
+        <div class="col-md-4">
+          <label class="lbl">🔍 Rechercher</label>
+          <input type="text" name="q" class="form-control-fun" placeholder="Nom, email..." value="{{ search }}">
+        </div>
+        <div class="col-md-3">
+          <label class="lbl">👤 Rôle</label>
+          <select name="role" class="form-select-fun">
+            <option value="">Tous</option>
+            <option value="admin"      {{ 'selected' if role=='admin' }}>⚙️ Admin</option>
+            <option value="enseignant" {{ 'selected' if role=='enseignant' }}>👨‍🏫 Enseignant</option>
+            <option value="eleve"      {{ 'selected' if role=='eleve' }}>🎓 Élève</option>
+          </select>
+        </div>
+        <div class="col-md-2">
+          <button type="submit" class="btn btn-fun btn-sky w-100 fw-800">Filtrer</button>
+        </div>
+        <div class="col-md-3 text-end">
+          <a href="{{ url_for('admin_user_creer') }}" class="btn btn-fun btn-coral w-100 fw-800">➕ Créer un compte</a>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div class="table-fun">
+    <table class="table mb-0">
+      <thead>
+        <tr><th>Nom complet</th><th>Email</th><th>Rôle</th><th>Statut</th><th>Inscription</th><th>Actions</th></tr>
+      </thead>
+      <tbody>
+        {% for u in users %}
+        <tr>
+          <td><div class="fw-800">{{ u.prenom }} {{ u.nom }}</div></td>
+          <td class="text-muted fw-600 small">{{ u.email }}</td>
+          <td><span class="role-badge role-{{ u.role }}">{{ '⚙️' if u.role=='admin' else '👨‍🏫' if u.role=='enseignant' else '🎓' }} {{ u.role }}</span></td>
+          <td>
+            {% if u.actif %}
+            <span class="badge-fun badge-publie">✅ Actif</span>
+            {% else %}
+            <span class="badge-fun" style="background:#fee2e2;color:#991b1b">🚫 Désactivé</span>
+            {% endif %}
+          </td>
+          <td class="text-muted small fw-600">{{ u.date_creation.strftime('%d/%m/%Y') }}</td>
+          <td>
+            <div class="d-flex gap-2">
+              <a href="{{ url_for('admin_user_editer', uid=u.id) }}" class="btn btn-fun btn-sky btn-sm">✏️</a>
+              <form method="POST" action="{{ url_for('admin_user_toggle', uid=u.id) }}">
+                <button type="submit" class="btn btn-fun btn-sm {{ 'btn-outline-fun' if u.actif else 'btn-mint' }}" title="{{ 'Désactiver' if u.actif else 'Activer' }}">
+                  {{ '🔕' if u.actif else '✅' }}
+                </button>
+              </form>
+              {% if u.id != current_user.id %}
+              <form method="POST" action="{{ url_for('admin_user_supprimer', uid=u.id) }}" onsubmit="return confirm('Supprimer cet utilisateur ?')">
+                <button type="submit" class="btn btn-fun btn-sm btn-coral">🗑️</button>
+              </form>
+              {% endif %}
+            </div>
+          </td>
+        </tr>
+        {% else %}
+        <tr><td colspan="6" class="text-center py-4 text-muted fw-600">Aucun utilisateur trouvé</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

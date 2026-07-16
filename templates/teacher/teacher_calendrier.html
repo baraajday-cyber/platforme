@@ -1,0 +1,90 @@
+{% extends "base.html" %}
+{% block title %}📅 Mon Calendrier — Enseignant{% endblock %}
+{% block extra_css %}
+<link href="https://cdnjs.cloudflare.com/ajax/libs/fullcalendar/6.1.8/index.global.min.css" rel="stylesheet">
+<style>
+.fc{font-family:'Nunito',sans-serif!important}
+.fc-toolbar-title{font-family:'Fredoka One',cursive!important;font-size:1.4rem!important}
+.fc-button{font-weight:800!important;border-radius:20px!important;font-size:.82rem!important}
+.fc-button-primary{background:var(--sky)!important;border-color:var(--sky)!important}
+.fc-event{border-radius:8px!important;padding:3px 7px!important;font-weight:700!important;font-size:.78rem!important}
+#cal-wrap{background:white;border-radius:var(--radius);padding:24px;box-shadow:var(--shadow)}
+.seance-li{background:#f0f4ff;border-radius:12px;padding:14px;margin-bottom:10px;border-left:4px solid var(--sky)}
+</style>
+{% endblock %}
+{% block content %}
+<div class="page-header">
+  <div class="container">
+    <h2>📅 Mes séances en ligne</h2>
+    <p style="color:rgba(255,255,255,.6);font-weight:600;margin:4px 0 0">Toutes vos séances planifiées par l'administration</p>
+  </div>
+</div>
+<div class="container-fluid px-4 pb-5">
+  <div class="row g-4">
+    <div class="col-lg-3">
+      <div class="card-fun p-4">
+        <h6 class="fw-800 mb-3">⏰ Prochaines séances</h6>
+        {% set now = now() %}
+        {% for s in seances if s.date_seance >= now %}
+        <div class="seance-li">
+          <div class="fw-800 small">{{ s.titre }}</div>
+          <div class="text-muted small fw-600">📖 {{ s.cours.titre[:25] }}</div>
+          <div class="text-sky fw-700 small">{{ s.date_seance.strftime('%d/%m/%Y %H:%M') }}</div>
+          <div class="text-muted small fw-600">⏱️ {{ s.duree }} min</div>
+          {% if s.lien_meet %}
+          <a href="{{ s.lien_meet }}" target="_blank" class="btn btn-fun btn-sky btn-sm mt-2 w-100" style="font-size:.78rem">🔗 Rejoindre la séance</a>
+          {% else %}
+          <div class="text-muted small mt-1 fw-600">🔗 Lien non encore disponible</div>
+          {% endif %}
+        </div>
+        {% else %}
+        <div class="text-center py-3 text-muted fw-600 small">📭 Aucune séance à venir</div>
+        {% endfor %}
+      </div>
+    </div>
+    <div class="col-lg-9">
+      <div id="cal-wrap">
+        <div id="calendar"></div>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="modal fade" id="seanceModal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content" style="border-radius:20px;border:none">
+      <div class="modal-header" style="background:var(--dark);color:white;border-radius:20px 20px 0 0">
+        <h5 class="modal-title fw-800" id="mTitle"></h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body p-4" id="mBody"></div>
+      <div class="modal-footer border-0">
+        <a id="mLien" href="#" target="_blank" class="btn btn-fun btn-mint fw-800 d-none">🔗 Rejoindre</a>
+        <button type="button" class="btn btn-fun btn-outline-fun" data-bs-dismiss="modal">Fermer</button>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+{% block extra_js %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/fullcalendar/6.1.8/index.global.min.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  new FullCalendar.Calendar(document.getElementById('calendar'), {
+    initialView: 'dayGridMonth', locale: 'fr',
+    headerToolbar: { left:'prev,next today', center:'title', right:'dayGridMonth,timeGridWeek,listWeek' },
+    events: '/api/seances',
+    eventClick: function(info) {
+      info.jsEvent.preventDefault();
+      const ep = info.event.extendedProps;
+      document.getElementById('mTitle').textContent = info.event.title;
+      document.getElementById('mBody').innerHTML = `<b>📖 Cours :</b> ${ep.cours}<br><b>⏱️ Durée :</b> ${ep.duree} min${ep.description ? '<br><b>📝</b> ' + ep.description : ''}`;
+      const l = document.getElementById('mLien');
+      if (ep.lien) { l.href = ep.lien; l.classList.remove('d-none'); } else l.classList.add('d-none');
+      new bootstrap.Modal(document.getElementById('seanceModal')).show();
+    },
+    height: 650,
+    buttonText: { today:"Aujourd'hui", month:'Mois', week:'Semaine', list:'Liste' }
+  }).render();
+});
+</script>
+{% endblock %}

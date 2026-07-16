@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% block title %}📢 Annonces — Admin{% endblock %}
+{% block content %}
+<div class="page-header"><div class="container"><h2>📢 Annonces de la plateforme</h2></div></div>
+<div class="container-fluid px-4 pb-5">
+  <div class="row g-4">
+    <div class="col-lg-4">
+      <div class="card-fun p-4">
+        <h5 class="fw-800 mb-3">➕ Nouvelle annonce</h5>
+        <form method="POST">
+          <div class="mb-3">
+            <label class="lbl">📢 Titre *</label>
+            <input type="text" name="titre" class="form-control-fun" placeholder="Titre de l'annonce..." required>
+          </div>
+          <div class="mb-3">
+            <label class="lbl">📝 Contenu *</label>
+            <textarea name="contenu" class="form-control-fun" rows="5" placeholder="Message à diffuser à tous..." required></textarea>
+          </div>
+          <button type="submit" class="btn btn-fun btn-coral w-100 fw-800">🚀 Publier</button>
+        </form>
+      </div>
+    </div>
+    <div class="col-lg-8">
+      <h5 class="fw-800 mb-3">📋 Toutes les annonces</h5>
+      {% for a in annonces %}
+      <div style="background:white;border-radius:16px;padding:20px;box-shadow:var(--shadow);margin-bottom:14px;border-left:5px solid var(--sun)">
+        <div class="d-flex justify-content-between align-items-start">
+          <div class="flex-fill">
+            <h6 class="fw-800 mb-1">{{ a.titre }}</h6>
+            <p class="text-muted fw-600 small mb-1" style="line-height:1.6">{{ a.contenu }}</p>
+            <div class="text-muted" style="font-size:.72rem;font-weight:700">📅 {{ a.date_creation.strftime('%d/%m/%Y %H:%M') }}</div>
+          </div>
+          <form method="POST" action="{{ url_for('admin_annonce_supprimer', aid=a.id) }}" onsubmit="return confirm('Supprimer ?')">
+            <button type="submit" class="btn btn-danger-fun btn-sm ms-3">🗑️</button>
+          </form>
+        </div>
+      </div>
+      {% else %}
+      <div class="text-center py-5 text-muted fw-600">📭 Aucune annonce pour le moment</div>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+{% endblock %}

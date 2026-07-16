@@ -1,0 +1,168 @@
+{% extends "base.html" %}
+{% block title %}📅 Calendrier des séances — Admin{% endblock %}
+{% block extra_css %}
+<link href="https://cdnjs.cloudflare.com/ajax/libs/fullcalendar/6.1.8/index.global.min.css" rel="stylesheet">
+<style>
+.fc{font-family:'Nunito',sans-serif!important}
+.fc-toolbar-title{font-family:'Fredoka One',cursive!important;font-size:1.5rem!important}
+.fc-button{font-weight:800!important;border-radius:20px!important;font-size:.82rem!important}
+.fc-button-primary{background:var(--sky)!important;border-color:var(--sky)!important}
+.fc-event{border-radius:8px!important;padding:3px 7px!important;font-weight:700!important;font-size:.78rem!important}
+#calendar-wrap{background:white;border-radius:var(--radius);padding:24px;box-shadow:var(--shadow)}
+.seance-row{background:white;border-radius:14px;padding:16px;box-shadow:var(--shadow);margin-bottom:10px;border-left:4px solid var(--sky)}
+</style>
+{% endblock %}
+{% block content %}
+<div class="page-header">
+  <div class="container">
+    <h2>📅 Calendrier des séances en ligne</h2>
+    <p style="color:rgba(255,255,255,.6);font-weight:600;margin:4px 0 0">Planifiez et gérez toutes les séances en ligne</p>
+  </div>
+</div>
+<div class="container-fluid px-4 pb-5">
+  <div class="row g-4">
+
+    <!-- Formulaire ajout séance -->
+    <div class="col-lg-3">
+      <div class="card-fun p-4 mb-4">
+        <h5 class="fw-800 mb-3">➕ Planifier une séance</h5>
+        <form method="POST" action="{{ url_for('admin_seance_creer') }}">
+          <div class="mb-3">
+            <label class="lbl">📌 Titre *</label>
+            <input type="text" name="titre" class="form-control-fun" placeholder="Ex : Cours de maths" required>
+          </div>
+          <div class="mb-3">
+            <label class="lbl">📖 Cours *</label>
+            <select name="cours_id" class="form-select-fun" required>
+              <option value="">Choisir un cours...</option>
+              {% for c in cours_list %}
+              <option value="{{ c.id }}">{{ c.titre[:30] }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="mb-3">
+            <label class="lbl">📅 Date et heure *</label>
+            <input type="datetime-local" name="date_seance" class="form-control-fun" required>
+          </div>
+          <div class="mb-3">
+            <label class="lbl">⏱️ Durée (minutes)</label>
+            <input type="number" name="duree" class="form-control-fun" value="60" min="15" max="480">
+          </div>
+          <div class="mb-3">
+            <label class="lbl">🔗 Lien Meet/Zoom</label>
+            <input type="url" name="lien_meet" class="form-control-fun" placeholder="https://meet.google.com/...">
+          </div>
+          <div class="mb-4">
+            <label class="lbl">📝 Description</label>
+            <textarea name="description" class="form-control-fun" rows="2" placeholder="Optionnel..."></textarea>
+          </div>
+          <button type="submit" class="btn btn-fun btn-sky w-100 fw-800">📅 Planifier !</button>
+        </form>
+      </div>
+
+      <!-- Liste séances futures -->
+      <div class="card-fun p-4">
+        <h6 class="fw-800 mb-3">⏰ Prochaines séances</h6>
+        {% for s in seances if s.date_seance >= now() %}
+        <div class="seance-row">
+          <div class="fw-800 small mb-1">{{ s.titre }}</div>
+          <div class="text-muted" style="font-size:.75rem;font-weight:600">{{ s.cours.titre[:25] }}</div>
+          <div class="text-sky fw-700 small">{{ s.date_seance.strftime('%d/%m %H:%M') }}</div>
+          <div class="d-flex gap-2 mt-2">
+            {% if s.lien_meet %}<a href="{{ s.lien_meet }}" target="_blank" class="btn btn-fun btn-mint btn-sm" style="font-size:.75rem;padding:4px 10px">🔗 Lien</a>{% endif %}
+            <form method="POST" action="{{ url_for('admin_seance_supprimer', sid=s.id) }}" onsubmit="return confirm('Supprimer ?')">
+              <button type="submit" class="btn btn-danger-fun btn-sm" style="font-size:.75rem;padding:4px 10px">🗑️</button>
+            </form>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+
+    <!-- Calendrier FullCalendar -->
+    <div class="col-lg-9">
+      <div id="calendar-wrap">
+        <div id="calendar"></div>
+      </div>
+
+      <!-- Tableau séances passées -->
+      <div class="card-fun p-4 mt-4">
+        <h5 class="fw-800 mb-3">📋 Toutes les séances</h5>
+        <div class="table-fun">
+          <table class="table mb-0">
+            <thead><tr><th>Titre</th><th>Cours</th><th>Date</th><th>Durée</th><th>Lien</th><th>Action</th></tr></thead>
+            <tbody>
+              {% for s in seances|sort(attribute='date_seance', reverse=True) %}
+              <tr>
+                <td class="fw-800">{{ s.titre }}</td>
+                <td class="text-muted fw-600 small">{{ s.cours.titre[:25] }}</td>
+                <td class="fw-600 small">{{ s.date_seance.strftime('%d/%m/%Y %H:%M') }}</td>
+                <td class="text-muted small">⏱️ {{ s.duree }}min</td>
+                <td>{% if s.lien_meet %}<a href="{{ s.lien_meet }}" target="_blank" class="badge-fun badge-video">🔗 Rejoindre</a>{% else %}<span class="text-muted small">—</span>{% endif %}</td>
+                <td>
+                  <form method="POST" action="{{ url_for('admin_seance_supprimer', sid=s.id) }}" onsubmit="return confirm('Supprimer ?')">
+                    <button type="submit" class="btn btn-fun btn-coral btn-sm">🗑️</button>
+                  </form>
+                </td>
+              </tr>
+              {% else %}
+              <tr><td colspan="6" class="text-center py-4 text-muted fw-600">📭 Aucune séance</td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal détail séance -->
+<div class="modal fade" id="seanceModal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content" style="border-radius:20px;border:none">
+      <div class="modal-header" style="background:var(--dark);color:white;border-radius:20px 20px 0 0">
+        <h5 class="modal-title fw-800" id="modalTitle">Séance</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body p-4">
+        <div id="modalBody"></div>
+      </div>
+      <div class="modal-footer border-0">
+        <a id="modalLien" href="#" target="_blank" class="btn btn-fun btn-mint fw-800 d-none">🔗 Rejoindre la séance</a>
+        <button type="button" class="btn btn-fun btn-outline-fun" data-bs-dismiss="modal">Fermer</button>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+{% block extra_js %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/fullcalendar/6.1.8/index.global.min.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  const cal = new FullCalendar.Calendar(document.getElementById('calendar'), {
+    initialView: 'dayGridMonth',
+    locale: 'fr',
+    headerToolbar: { left:'prev,next today', center:'title', right:'dayGridMonth,timeGridWeek,listWeek' },
+    events: '/api/seances',
+    eventClick: function(info) {
+      info.jsEvent.preventDefault();
+      const ep = info.event.extendedProps;
+      document.getElementById('modalTitle').textContent = info.event.title;
+      document.getElementById('modalBody').innerHTML = `
+        <div style="display:flex;flex-direction:column;gap:10px">
+          <div><strong>📖 Cours :</strong> ${ep.cours}</div>
+          <div><strong>⏱️ Durée :</strong> ${ep.duree} minutes</div>
+          ${ep.description ? `<div><strong>📝 Description :</strong> ${ep.description}</div>` : ''}
+        </div>`;
+      const lienEl = document.getElementById('modalLien');
+      if (ep.lien) { lienEl.href = ep.lien; lienEl.classList.remove('d-none'); }
+      else { lienEl.classList.add('d-none'); }
+      new bootstrap.Modal(document.getElementById('seanceModal')).show();
+    },
+    height: 650,
+    buttonText: { today:'Aujourd\'hui', month:'Mois', week:'Semaine', list:'Liste' }
+  });
+  cal.render();
+});
+</script>
+{% endblock %}

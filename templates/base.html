@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>{% block title %}🧠 BrainBurst{% endblock %}</title>
+<link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css" rel="stylesheet">
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Fredoka+One&family=Nunito:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+:root{
+  --sun:#FFD93D; --coral:#FF6B6B; --mint:#6BCB77; --sky:#4D96FF;
+  --violet:#C77DFF; --peach:#FFB347; --dark:#1A1A2E; --ink:#2D2D44;
+  --paper:#FFFDF7; --light:#F7F9FF;
+  --admin:#e74c3c; --teacher:#2ecc71; --student:#3498db;
+  --shadow:0 4px 20px rgba(0,0,0,.1);
+  --radius:16px; --radius-sm:10px;
+}
+*{box-sizing:border-box}
+body{font-family:'Nunito',sans-serif;background:var(--light);color:var(--ink);overflow-x:hidden;padding-top:67px}
+::-webkit-scrollbar{width:7px}
+::-webkit-scrollbar-thumb{background:var(--sky);border-radius:10px}
+
+/* NAVBAR */
+.navbar{background:var(--dark)!important;padding:12px 0;position:fixed;top:0;left:0;right:0;z-index:1000;
+  box-shadow:0 4px 20px rgba(0,0,0,.3);border-bottom:3px solid var(--sun)}
+.navbar-brand{font-family:'Fredoka One',cursive;font-size:1.7rem;color:white!important}
+.navbar-brand .burst{color:var(--sun)}
+.nav-pill{color:rgba(255,255,255,.8)!important;font-weight:700;border-radius:25px!important;
+  padding:6px 14px!important;transition:all .2s;font-size:.88rem}
+.nav-pill:hover{color:var(--dark)!important;background:var(--sun)!important}
+.role-badge{display:inline-flex;align-items:center;gap:5px;padding:4px 12px;border-radius:20px;
+  font-size:.75rem;font-weight:800}
+.role-admin{background:rgba(231,76,60,.2);color:#e74c3c;border:1px solid #e74c3c}
+.role-enseignant{background:rgba(46,204,113,.2);color:#27ae60;border:1px solid #27ae60}
+.role-eleve{background:rgba(52,152,219,.2);color:#2980b9;border:1px solid #2980b9}
+
+/* FLASH */
+.flash-zone{position:fixed;top:75px;right:16px;z-index:9999;min-width:280px;max-width:380px}
+.flash-item{border:none;border-radius:var(--radius-sm);font-weight:700;font-size:.88rem;
+  box-shadow:var(--shadow);animation:slideIn .35s ease;border-left:4px solid}
+.flash-item.alert-success{background:#f0fdf4;border-color:var(--mint);color:#166534}
+.flash-item.alert-danger{background:#fff1f1;border-color:var(--coral);color:#991b1b}
+.flash-item.alert-warning{background:#fffbeb;border-color:var(--peach);color:#92400e}
+.flash-item.alert-info{background:#eff6ff;border-color:var(--sky);color:#1e40af}
+@keyframes slideIn{from{transform:translateX(100px);opacity:0}to{transform:translateX(0);opacity:1}}
+
+/* PAGE HEADER */
+.page-header{background:var(--dark);padding:44px 0 34px;margin-bottom:36px;position:relative;overflow:hidden}
+.page-header::before{content:'';position:absolute;inset:0;
+  background:repeating-linear-gradient(45deg,transparent,transparent 30px,rgba(255,255,255,.015) 30px,rgba(255,255,255,.015) 60px)}
+.page-header h2{font-family:'Fredoka One',cursive;font-size:2rem;color:white;position:relative}
+.page-header .breadcrumb-item a{color:rgba(255,255,255,.5)!important}
+.page-header .breadcrumb-item.active{color:var(--sun)}
+.page-header .breadcrumb-item+.breadcrumb-item::before{color:rgba(255,255,255,.3)}
+
+/* CARDS */
+.card-fun{background:white;border:2px solid transparent;border-radius:var(--radius);
+  box-shadow:var(--shadow);transition:all .25s;position:relative;overflow:hidden}
+.card-fun:hover{transform:translateY(-4px);box-shadow:0 12px 35px rgba(0,0,0,.14);border-color:var(--sky)}
+.card-fun::before{content:'';position:absolute;top:0;left:0;right:0;height:4px;
+  background:linear-gradient(90deg,var(--coral),var(--sun),var(--mint),var(--sky))}
+
+/* STAT CARDS */
+.stat-card{border-radius:var(--radius);padding:24px;color:white;position:relative;
+  overflow:hidden;box-shadow:var(--shadow);transition:transform .3s}
+.stat-card:hover{transform:translateY(-5px)}
+.stat-card::after{content:attr(data-emoji);position:absolute;right:-8px;bottom:-8px;
+  font-size:4.5rem;opacity:.15}
+.stat-num{font-family:'Fredoka One',cursive;font-size:2.4rem;display:block}
+.stat-lbl{font-weight:700;opacity:.85;font-size:.85rem}
+
+/* BUTTONS */
+.btn-fun{font-weight:800;border-radius:25px;padding:9px 22px;border:2.5px solid transparent;
+  transition:all .2s;font-size:.88rem}
+.btn-fun:hover{transform:translateY(-2px)}
+.btn-fun:active{transform:scale(.97)}
+.btn-sun{background:var(--sun);color:var(--dark);border-color:var(--sun)}
+.btn-coral{background:var(--coral);color:white;border-color:var(--coral)}
+.btn-mint{background:var(--mint);color:white;border-color:var(--mint)}
+.btn-sky{background:var(--sky);color:white;border-color:var(--sky)}
+.btn-violet{background:var(--violet);color:white;border-color:var(--violet)}
+.btn-dark2{background:var(--dark);color:white;border-color:var(--dark)}
+.btn-outline-fun{background:transparent;border:2px solid #dee2e6;color:var(--ink)}
+.btn-outline-fun:hover{border-color:var(--sky);color:var(--sky)}
+.btn-danger-fun{background:transparent;border:2px solid var(--coral);color:var(--coral);
+  border-radius:25px;font-weight:700;padding:7px 18px;transition:all .2s}
+.btn-danger-fun:hover{background:var(--coral);color:white}
+
+/* FORMS */
+.form-control-fun,.form-select-fun{border:2.5px solid #e2e8f0;border-radius:var(--radius-sm);
+  padding:11px 15px;font-family:'Nunito',sans-serif;font-weight:600;font-size:.93rem;
+  transition:border-color .2s,box-shadow .2s;width:100%;background:white}
+.form-control-fun:focus,.form-select-fun:focus{border-color:var(--sky);
+  box-shadow:0 0 0 4px rgba(77,150,255,.12);outline:none}
+.lbl{font-weight:800;font-size:.88rem;display:block;margin-bottom:5px}
+
+/* BADGES */
+.badge-fun{border-radius:20px;font-weight:700;font-size:.72rem;padding:4px 11px;display:inline-block}
+.badge-pdf{background:#fee2e2;color:#dc2626}
+.badge-video{background:#fce7f3;color:#db2777}
+.badge-autre{background:#f0f4ff;color:#2563eb}
+.badge-publie{background:#d1fae5;color:#065f46}
+.badge-brouillon{background:#f1f5f9;color:#64748b}
+.badge-debutant{background:#d1fae5;color:#065f46}
+.badge-intermediaire{background:#fef3c7;color:#92400e}
+.badge-avance{background:#fee2e2;color:#991b1b}
+
+/* PROGRESS */
+.prog-bar-wrap{background:#f1f5f9;border-radius:20px;height:10px;overflow:hidden}
+.prog-bar{height:100%;border-radius:20px;background:linear-gradient(90deg,var(--sky),var(--violet));
+  transition:width .6s ease}
+
+/* SIDEBAR NAV */
+.side-nav{
+  background:var(--dark);
+  width:240px;
+  position:fixed;
+  top:0;left:0;bottom:0;
+  z-index:999;
+  overflow-y:auto;
+  padding-top:67px;
+}
+.side-nav::-webkit-scrollbar{width:4px}
+.side-nav::-webkit-scrollbar-thumb{background:rgba(255,255,255,.2);border-radius:4px}
+.side-nav a{
+  display:flex;align-items:center;gap:10px;
+  padding:11px 20px;
+  color:rgba(255,255,255,.7);
+  font-weight:700;font-size:.88rem;
+  text-decoration:none;
+  transition:all .2s;
+  border-left:3px solid transparent;
+}
+.side-nav a:hover,.side-nav a.active{color:white;background:rgba(255,255,255,.08);border-left-color:var(--sun)}
+.side-nav .nav-section{
+  padding:16px 20px 6px;
+  font-size:.7rem;font-weight:900;
+  text-transform:uppercase;letter-spacing:.1em;
+  color:rgba(255,255,255,.35)
+}
+.main-content{
+  margin-left:240px;
+  min-height:100vh;
+  width:calc(100% - 240px);
+  float:left;
+}
+body{overflow-x:hidden}
+@media(max-width:900px){.side-nav{display:none}.main-content{margin-left:0;width:100%}}
+
+/* TABLE */
+.table-fun{border-radius:var(--radius);overflow:hidden;box-shadow:var(--shadow)}
+.table-fun thead{background:var(--dark);color:white}
+.table-fun thead th{font-weight:800;font-size:.85rem;padding:14px 16px;border:none}
+.table-fun tbody tr{border-bottom:1px solid #f1f5f9;transition:background .15s}
+.table-fun tbody tr:hover{background:#f8fafc}
+.table-fun tbody td{padding:12px 16px;vertical-align:middle;font-weight:600;font-size:.9rem}
+
+/* SECTION TITLE */
+.section-title{font-family:'Fredoka One',cursive;font-size:1.9rem;color:var(--ink)}
+
+/* FOOTER */
+footer{background:var(--dark);color:rgba(255,255,255,.6);padding:40px 0 16px;margin-top:60px}
+footer::before{content:'';display:block;height:4px;
+  background:linear-gradient(90deg,var(--coral),var(--sun),var(--mint),var(--sky),var(--violet));
+  margin-bottom:40px}
+
+/* ANIM */
+@keyframes fadeUp{from{opacity:0;transform:translateY(24px)}to{opacity:1;transform:translateY(0)}}
+.fade-up{animation:fadeUp .5s ease both}
+.fade-up-1{animation-delay:.08s}.fade-up-2{animation-delay:.16s}.fade-up-3{animation-delay:.24s}
+.emoji-bounce{display:inline-block;animation:eb 2s ease-in-out infinite}
+@keyframes eb{0%,100%{transform:translateY(0)}50%{transform:translateY(-8px)}}
+</style>
+{% block extra_css %}{% endblock %}
+</head>
+<body>
+
+{% if current_user.is_authenticated %}
+<!-- SIDEBAR -->
+<div class="side-nav">
+  <div style="padding:16px 20px 20px;border-bottom:1px solid rgba(255,255,255,.1)">
+    <div style="font-family:'Fredoka One',cursive;color:white;font-size:1.3rem">🧠 BrainBurst!</div>
+    <div class="mt-2">
+      <span class="role-badge role-{{ current_user.role }}">
+        {{ '⚙️ Admin' if current_user.role=='admin' else '👨‍🏫 Enseignant' if current_user.role=='enseignant' else '🎓 Élève' }}
+      </span>
+    </div>
+    <div style="color:rgba(255,255,255,.5);font-size:.78rem;font-weight:700;margin-top:6px">
+      {{ current_user.prenom }} {{ current_user.nom }}
+    </div>
+  </div>
+
+  {% if current_user.role == 'admin' %}
+  <div class="nav-section">Principal</div>
+  <a href="{{ url_for('admin_dashboard') }}" class="{{ 'active' if request.endpoint=='admin_dashboard' }}">📊 Tableau de bord</a>
+  <a href="{{ url_for('admin_calendrier') }}" class="{{ 'active' if request.endpoint=='admin_calendrier' }}">📅 Calendrier</a>
+  <div class="nav-section">Gestion</div>
+  <a href="{{ url_for('admin_users') }}" class="{{ 'active' if request.endpoint in ['admin_users','admin_user_creer','admin_user_editer'] }}">👥 Utilisateurs</a>
+  <a href="{{ url_for('admin_matieres') }}" class="{{ 'active' if request.endpoint in ['admin_matieres','admin_matiere_creer','admin_matiere_editer'] }}">📚 Matières</a>
+  <a href="{{ url_for('admin_annonces') }}" class="{{ 'active' if request.endpoint=='admin_annonces' }}">📢 Annonces</a>
+  <div class="nav-section">Commun</div>
+  <a href="{{ url_for('liste_cours') }}">🔍 Voir les cours</a>
+
+  {% elif current_user.role == 'enseignant' %}
+  <div class="nav-section">Principal</div>
+  <a href="{{ url_for('teacher_dashboard') }}" class="{{ 'active' if request.endpoint=='teacher_dashboard' }}">📊 Tableau de bord</a>
+  <a href="{{ url_for('teacher_calendrier') }}" class="{{ 'active' if request.endpoint=='teacher_calendrier' }}">📅 Calendrier</a>
+  <div class="nav-section">Mes cours</div>
+  <a href="{{ url_for('teacher_cours_creer') }}" class="{{ 'active' if request.endpoint=='teacher_cours_creer' }}">➕ Créer un cours</a>
+  {% for c in current_user.cours_crees %}
+  <a href="{{ url_for('teacher_cours_contenu', cid=c.id) }}" style="padding-left:32px;font-size:.83rem">
+    📖 {{ c.titre[:22] }}
+  </a>
+  {% endfor %}
+
+  {% else %}
+  <div class="nav-section">Principal</div>
+  <a href="{{ url_for('student_dashboard') }}" class="{{ 'active' if request.endpoint=='student_dashboard' }}">🏠 Mon espace</a>
+  <a href="{{ url_for('student_calendrier') }}" class="{{ 'active' if request.endpoint=='student_calendrier' }}">📅 Calendrier</a>
+  <div class="nav-section">Mes cours</div>
+  <a href="{{ url_for('liste_cours') }}">📚 Catalogue</a>
+  {% for insc in current_user.inscriptions %}
+  <a href="{{ url_for('cours_apprendre', cid=insc.cours_id) }}" style="padding-left:32px;font-size:.83rem">
+    📖 {{ insc.cours.titre[:22] }}
+  </a>
+  {% endfor %}
+  {% endif %}
+
+  <div class="nav-section">Compte</div>
+  <a href="{{ url_for('messages') }}">✉️ Messages</a>
+  <a href="{{ url_for('profil') }}">👤 Mon profil</a>
+  <a href="{{ url_for('logout') }}" style="color:rgba(255,107,107,.8)!important">🚪 Déconnexion</a>
+</div>
+
+<!-- MAIN CONTENT -->
+<div class="main-content">
+{% else %}
+<!-- NAVBAR publique -->
+<nav class="navbar navbar-expand-lg navbar-dark">
+  <div class="container">
+    <a class="navbar-brand" href="{{ url_for('index') }}">🧠 Brain<span class="burst">Burst</span>!</a>
+    <div class="ms-auto d-flex gap-2 align-items-center">
+      <a href="{{ url_for('login') }}" class="nav-pill nav-link">🔑 Connexion</a>
+    </div>
+  </div>
+</nav>
+<div>
+{% endif %}
+
+<!-- FLASH -->
+<div class="flash-zone">
+  {% with messages = get_flashed_messages(with_categories=true) %}
+  {% if messages %}{% for cat, msg in messages %}
+  <div class="alert flash-item alert-{{ 'danger' if cat=='error' else cat }} alert-dismissible">
+    {{ '✅' if cat=='success' else '❌' if cat in ('danger','error') else '⚠️' if cat=='warning' else 'ℹ️' }} {{ msg }}
+    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+  </div>
+  {% endfor %}{% endif %}
+  {% endwith %}
+</div>
+
+{% block content %}{% endblock %}
+
+</div><!-- /main-content -->
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
+<script>setTimeout(()=>document.querySelectorAll('.flash-item').forEach(e=>e.remove()),4500)</script>
+{% block extra_js %}{% endblock %}
+</body>
+</html>

@@ -1,0 +1,102 @@
+{% extends "base.html" %}
+{% block title %}👨‍🏫 Dashboard Enseignant — BrainBurst{% endblock %}
+{% block content %}
+<div class="page-header">
+  <div class="container">
+    <h2>👨‍🏫 Bonjour, {{ current_user.prenom }} ! <span class="emoji-bounce" style="display:inline-block">✏️</span></h2>
+    <p style="color:rgba(255,255,255,.6);font-weight:600;margin:4px 0 0">Gérez vos cours, suivez vos élèves</p>
+  </div>
+</div>
+<div class="container-fluid px-4 pb-5">
+  <!-- Stats -->
+  <div class="row g-4 mb-5">
+    {% for num, lbl, emoji, grad in [
+      (mes_cours|length, 'Mes cours', '📚', 'linear-gradient(135deg,#4D96FF,#7c3aed)'),
+      (total_eleves, 'Élèves inscrits', '🎓', 'linear-gradient(135deg,#6BCB77,#4D96FF)'),
+      (travaux_recents|length, 'Rendus à corriger', '📝', 'linear-gradient(135deg,#FFD93D,#FF6B6B)'),
+      (seances|length, 'Séances à venir', '📅', 'linear-gradient(135deg,#C77DFF,#FF6B6B)'),
+    ] %}
+    <div class="col-md-3 col-6">
+      <div class="stat-card" data-emoji="{{ emoji }}" style="background:{{ grad }}">
+        <span class="stat-num">{{ num }}</span>
+        <span class="stat-lbl">{{ emoji }} {{ lbl }}</span>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+
+  <div class="row g-4">
+    <!-- Mes cours -->
+    <div class="col-lg-8">
+      <div class="d-flex justify-content-between align-items-center mb-3">
+        <h5 class="fw-800 mb-0">📚 Mes cours</h5>
+<a href="{{ url_for('teacher_cours_creer_deposer') }}" class="btn btn-fun btn-mint fw-800">➕ Créer + Déposer</a>
+      </div>
+      {% if mes_cours %}
+      <div class="row g-3">
+        {% for c in mes_cours %}
+        <div class="col-md-6">
+          <div class="card-fun p-4">
+            <div class="d-flex justify-content-between mb-2">
+              <span class="badge-fun {{ 'badge-publie' if c.publie else 'badge-brouillon' }}">{{ '✅ Publié' if c.publie else '📝 Brouillon' }}</span>
+              {% if c.matiere %}<span class="badge-fun" style="background:{{ c.matiere.couleur }}22;color:{{ c.matiere.couleur }}">{{ c.matiere.icone }} {{ c.matiere.nom }}</span>{% endif %}
+            </div>
+            <h6 class="fw-800 mb-1">{{ c.titre }}</h6>
+            <p class="text-muted small fw-600 mb-3">{{ c.description[:70] }}...</p>
+            <div class="d-flex gap-3 text-muted small fw-700 mb-3">
+              <span>👥 {{ c.inscriptions|length }}</span>
+              <span>📄 {{ c.ressources|length }} ressources</span>
+              <span>📝 {{ c.travaux|length }} travaux</span>
+            </div>
+            <div class="d-flex gap-2">
+              <a href="{{ url_for('teacher_cours_contenu', cid=c.id) }}" class="btn btn-fun btn-sky btn-sm flex-fill">⚙️ Gérer</a>
+              <a href="{{ url_for('teacher_cours_editer', cid=c.id) }}" class="btn btn-fun btn-sun btn-sm">✏️</a>
+            </div>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+      {% else %}
+      <div class="card-fun p-5 text-center">
+        <div style="font-size:4rem;margin-bottom:12px">📭</div>
+        <h5 class="fw-800">Aucun cours créé</h5>
+        <a href="{{ url_for('teacher_cours_creer') }}" class="btn btn-fun btn-coral mt-3">🚀 Créer mon premier cours</a>
+      </div>
+      {% endif %}
+    </div>
+
+    <div class="col-lg-4">
+      <!-- Rendus à corriger -->
+      {% if travaux_recents %}
+      <div class="card-fun p-4 mb-4">
+        <h6 class="fw-800 mb-3">📝 Rendus à corriger</h6>
+        {% for item in travaux_recents %}
+        <div style="background:#fffbeb;border-radius:12px;padding:12px;margin-bottom:8px;border-left:3px solid var(--sun)">
+          <div class="fw-800 small">{{ item.rendu.eleve.prenom }} {{ item.rendu.eleve.nom }}</div>
+          <div class="text-muted small fw-600">{{ item.travail.titre[:30] }}</div>
+          <a href="{{ url_for('teacher_travail_rendus', tid=item.travail.id) }}" class="btn btn-fun btn-sun btn-sm mt-1" style="font-size:.75rem">Corriger →</a>
+        </div>
+        {% endfor %}
+      </div>
+      {% endif %}
+
+      <!-- Prochaines séances -->
+      <div class="card-fun p-4">
+        <div class="d-flex justify-content-between mb-3">
+          <h6 class="fw-800 mb-0">📅 Mes séances</h6>
+          <a href="{{ url_for('teacher_calendrier') }}" class="btn btn-fun btn-violet btn-sm" style="font-size:.75rem">Calendrier</a>
+        </div>
+        {% for s in seances %}
+        <div style="background:#f0f4ff;border-radius:12px;padding:12px;margin-bottom:8px">
+          <div class="fw-800 small">{{ s.titre }}</div>
+          <div class="text-sky fw-700 small">{{ s.date_seance.strftime('%d/%m/%Y %H:%M') }}</div>
+          {% if s.lien_meet %}<a href="{{ s.lien_meet }}" target="_blank" class="btn btn-fun btn-sky btn-sm mt-1" style="font-size:.72rem">🔗 Rejoindre</a>{% endif %}
+        </div>
+        {% else %}
+        <div class="text-center text-muted fw-600 small py-2">📭 Aucune séance planifiée</div>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+{% block title %}{{ 'Modifier' if cours else 'Créer' }} un cours{% endblock %}
+{% block content %}
+<div class="page-header"><div class="container"><h2>{{ '✏️ Modifier' if cours else '➕ Créer' }} un cours</h2></div></div>
+<div class="container pb-5"><div class="row justify-content-center"><div class="col-lg-7">
+<div class="card-fun p-5">
+  <form method="POST">
+    <div class="mb-4">
+      <label class="lbl">📖 Titre *</label>
+      <input type="text" name="titre" class="form-control-fun" value="{{ cours.titre if cours else '' }}" placeholder="Titre du cours..." required>
+    </div>
+    <div class="mb-4">
+      <label class="lbl">📝 Description *</label>
+      <textarea name="description" class="form-control-fun" rows="4" placeholder="Décrivez l'objectif de ce cours..." required>{{ cours.description if cours else '' }}</textarea>
+    </div>
+    <div class="row g-3 mb-4">
+      <div class="col-md-6">
+        <label class="lbl">📚 Matière</label>
+        <select name="matiere_id" class="form-select-fun">
+          <option value="">— Aucune matière —</option>
+          {% for m in matieres %}<option value="{{ m.id }}" {{ 'selected' if cours and cours.matiere_id==m.id }}>{{ m.icone }} {{ m.nom }}</option>{% endfor %}
+        </select>
+      </div>
+      <div class="col-md-6">
+        <label class="lbl">📊 Niveau</label>
+        <select name="niveau" class="form-select-fun">
+          {% for n in ['Débutant','Intermédiaire','Avancé'] %}
+          <option value="{{ n }}" {{ 'selected' if cours and cours.niveau==n }}>{{ n }}</option>
+          {% endfor %}
+        </select>
+      </div>
+    </div>
+    <div class="mb-4 p-3" style="background:#f8fafc;border-radius:12px">
+      <div class="form-check form-switch">
+        <input class="form-check-input" type="checkbox" name="publie" id="pub" style="width:46px;height:26px" {{ 'checked' if cours and cours.publie }}>
+        <label class="form-check-label fw-800" for="pub">🌐 Publier (visible par les élèves)</label>
+      </div>
+    </div>
+    <div class="d-flex gap-3">
+      <button type="submit" class="btn btn-fun btn-sky fw-800 px-5">💾 Enregistrer</button>
+      <a href="{{ url_for('teacher_cours_contenu', cid=cours.id) if cours else url_for('teacher_dashboard') }}" class="btn btn-fun btn-outline-fun px-4">← Annuler</a>
+      {% if cours %}
+      <form method="POST" action="{{ url_for('teacher_cours_supprimer', cid=cours.id) }}" class="ms-auto" onsubmit="return confirm('Supprimer ce cours ?')">
+        <button type="submit" class="btn btn-danger-fun">🗑️ Supprimer</button>
+      </form>
+      {% endif %}
+    </div>
+  </form>
+</div>
+</div></div></div>
+{% endblock %}

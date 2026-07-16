@@ -1,0 +1,101 @@
+{% extends "base.html" %}
+{% block title %}⚙️ Admin Dashboard — BrainBurst{% endblock %}
+{% block content %}
+<div class="page-header">
+  <div class="container">
+    <h2>⚙️ Tableau de bord Admin <span class="emoji-bounce" style="display:inline-block">👑</span></h2>
+    <p style="color:rgba(255,255,255,.6);font-weight:600;margin:4px 0 0">Vue d'ensemble de la plateforme</p>
+  </div>
+</div>
+<div class="container-fluid px-4 pb-5">
+
+  <!-- Stats -->
+  <div class="row g-4 mb-5">
+    {% for num, lbl, emoji, grad in [
+      (stats.eleves,      'Élèves',      '🎓', 'linear-gradient(135deg,#4D96FF,#7c3aed)'),
+      (stats.enseignants, 'Enseignants', '👨‍🏫', 'linear-gradient(135deg,#6BCB77,#4D96FF)'),
+      (stats.cours,       'Cours',       '📚', 'linear-gradient(135deg,#FFD93D,#FF6B6B)'),
+      (stats.matieres,    'Matières',    '📖', 'linear-gradient(135deg,#C77DFF,#FF6B6B)'),
+      (stats.seances,     'Séances',     '📅', 'linear-gradient(135deg,#FFB347,#FF6B6B)'),
+    ] %}
+    <div class="col-md col-6">
+      <div class="stat-card fade-up fade-up-{{ loop.index }}" data-emoji="{{ emoji }}" style="background:{{ grad }}">
+        <span class="stat-num">{{ num }}</span>
+        <span class="stat-lbl">{{ emoji }} {{ lbl }}</span>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+
+  <div class="row g-4">
+    <!-- Derniers inscrits -->
+    <div class="col-lg-6">
+      <div class="card-fun p-4 mb-4">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+          <h5 class="fw-800 mb-0">👥 Derniers utilisateurs</h5>
+          <a href="{{ url_for('admin_users') }}" class="btn btn-fun btn-sky btn-sm">Voir tout</a>
+        </div>
+        <div class="table-fun">
+          <table class="table mb-0">
+            <thead><tr><th>Nom</th><th>Rôle</th><th>Date</th></tr></thead>
+            <tbody>
+              {% for u in users_recent %}
+              <tr>
+                <td class="fw-700">{{ u.prenom }} {{ u.nom }}</td>
+                <td><span class="role-badge role-{{ u.role }}">{{ u.role }}</span></td>
+                <td class="text-muted small">{{ u.date_creation.strftime('%d/%m/%Y') }}</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- Prochaines séances -->
+    <div class="col-lg-6">
+      <div class="card-fun p-4 mb-4">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+          <h5 class="fw-800 mb-0">📅 Prochaines séances</h5>
+          <a href="{{ url_for('admin_calendrier') }}" class="btn btn-fun btn-violet btn-sm">Calendrier</a>
+        </div>
+        {% for s in seances_future %}
+        <div class="d-flex align-items-center gap-3 p-3 mb-2" style="background:#f8fafc;border-radius:12px">
+          <div style="background:var(--sky);color:white;width:42px;height:42px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:1.2rem;flex-shrink:0">📅</div>
+          <div class="flex-fill">
+            <div class="fw-800 small">{{ s.titre }}</div>
+            <div class="text-muted" style="font-size:.75rem;font-weight:600">{{ s.cours.titre }} · {{ s.date_seance.strftime('%d/%m/%Y %H:%M') }}</div>
+          </div>
+          {% if s.lien_meet %}<a href="{{ s.lien_meet }}" target="_blank" class="btn btn-fun btn-mint btn-sm">🔗 Rejoindre</a>{% endif %}
+        </div>
+        {% else %}
+        <div class="text-center py-4 text-muted fw-600">📭 Aucune séance planifiée</div>
+        {% endfor %}
+      </div>
+    </div>
+
+    <!-- Annonces -->
+    <div class="col-12">
+      <div class="card-fun p-4">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+          <h5 class="fw-800 mb-0">📢 Dernières annonces</h5>
+          <a href="{{ url_for('admin_annonces') }}" class="btn btn-fun btn-coral btn-sm">Gérer</a>
+        </div>
+        <div class="row g-3">
+          {% for a in annonces %}
+          <div class="col-md-4">
+            <div style="background:#fffbeb;border-radius:14px;padding:18px;border-left:4px solid var(--sun)">
+              <div class="fw-800 mb-1">{{ a.titre }}</div>
+              <p class="text-muted small fw-600 mb-0" style="line-height:1.6">{{ a.contenu[:100] }}...</p>
+              <div class="text-muted mt-2" style="font-size:.72rem;font-weight:700">{{ a.date_creation.strftime('%d/%m/%Y') }}</div>
+            </div>
+          </div>
+          {% else %}
+          <div class="col-12 text-center py-3 text-muted fw-600">📭 Aucune annonce</div>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

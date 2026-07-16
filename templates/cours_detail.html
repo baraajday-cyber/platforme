@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+{% block title %}{{ cours.titre }} — BrainBurst{% endblock %}
+{% block content %}
+<div class="page-header">
+  <div class="container">
+    <nav aria-label="breadcrumb" class="mb-2">
+      <ol class="breadcrumb mb-0">
+        <li class="breadcrumb-item"><a href="{{ url_for('liste_cours') }}" class="text-white-50">📚 Cours</a></li>
+        <li class="breadcrumb-item active text-sun">{{ cours.titre[:40] }}</li>
+      </ol>
+    </nav>
+    <h2>{{ cours.titre }}</h2>
+    <div class="d-flex flex-wrap gap-3 mt-2" style="color:rgba(255,255,255,.65);font-size:.88rem;font-weight:700">
+      {% if cours.matiere %}<span>{{ cours.matiere.icone }} {{ cours.matiere.nom }}</span>{% endif %}
+      <span>📊 {{ cours.niveau }}</span>
+      <span>👨‍🏫 {{ cours.enseignant.prenom }} {{ cours.enseignant.nom }}</span>
+      <span>👥 {{ cours.inscriptions|length }} élève(s)</span>
+    </div>
+  </div>
+</div>
+<div class="container pb-5">
+  <div class="row g-5">
+    <div class="col-lg-8">
+      <div class="card-fun p-5 mb-4">
+        <h4 class="fw-800 mb-3">🎯 Description</h4>
+        <p class="fw-600" style="line-height:1.8;color:var(--ink)">{{ cours.description }}</p>
+      </div>
+      <div class="card-fun p-5">
+        <h4 class="fw-800 mb-4">📋 Contenu du cours</h4>
+        <div class="d-flex flex-column gap-2">
+          {% set pdfs = cours.ressources|selectattr('type_fichier','equalto','pdf')|list %}
+          {% set videos = cours.ressources|selectattr('type_fichier','equalto','video')|list %}
+          {% if pdfs %}<div class="d-flex align-items-center gap-3 p-3" style="background:#fff1f0;border-radius:12px"><span style="font-size:1.5rem">📕</span><span class="fw-700">{{ pdfs|length }} fichier(s) PDF</span></div>{% endif %}
+          {% if videos %}<div class="d-flex align-items-center gap-3 p-3" style="background:#fce7f3;border-radius:12px"><span style="font-size:1.5rem">🎬</span><span class="fw-700">{{ videos|length }} vidéo(s)</span></div>{% endif %}
+          {% if cours.travaux %}<div class="d-flex align-items-center gap-3 p-3" style="background:#fffbeb;border-radius:12px"><span style="font-size:1.5rem">📝</span><span class="fw-700">{{ cours.travaux|length }} travail/travaux à rendre</span></div>{% endif %}
+          {% if cours.seances %}<div class="d-flex align-items-center gap-3 p-3" style="background:#f0f4ff;border-radius:12px"><span style="font-size:1.5rem">📅</span><span class="fw-700">{{ cours.seances|length }} séance(s) en ligne</span></div>{% endif %}
+        </div>
+      </div>
+    </div>
+    <div class="col-lg-4">
+      <div style="background:white;border-radius:24px;padding:28px;box-shadow:0 8px 40px rgba(0,0,0,.1);border:3px solid #e2e8f0;position:sticky;top:80px">
+        <div style="height:130px;background:linear-gradient(135deg,var(--sky),var(--violet));border-radius:16px;display:flex;align-items:center;justify-content:center;font-size:4rem;margin-bottom:20px">🎓</div>
+        <ul class="list-unstyled fw-700 small mb-4" style="color:var(--ink)">
+          <li class="py-2 border-bottom">📁 {{ cours.ressources|length }} ressource(s)</li>
+          <li class="py-2 border-bottom">📝 {{ cours.travaux|length }} travail/travaux</li>
+          <li class="py-2 border-bottom">📅 {{ cours.seances|length }} séance(s)</li>
+          <li class="py-2">🔒 Accès après paiement</li>
+
+        </ul>
+        {% if current_user.role == 'eleve' %}
+          {% if inscription %}
+          <a href="{{ url_for('cours_apprendre', cid=cours.id) }}" class="btn btn-fun btn-mint w-100 py-3 fw-800" style="font-size:1rem">▶️ Accéder au cours</a>
+          {% else %}
+          <form method="POST" action="{{ url_for('cours_inscrire', cid=cours.id) }}">
+            <button type="submit" class="btn btn-fun btn-sky w-100 py-3 fw-800" style="font-size:1rem">🎉 S'inscrire gratuitement</button>
+          </form>
+          {% endif %}
+        {% elif current_user.role == 'enseignant' and cours.enseignant_id == current_user.id %}
+        <a href="{{ url_for('teacher_cours_contenu', cid=cours.id) }}" class="btn btn-fun btn-sun w-100 py-3 fw-800">⚙️ Gérer le cours</a>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

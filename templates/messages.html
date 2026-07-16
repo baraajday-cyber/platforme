@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+{% block title %}✉️ Messagerie — BrainBurst{% endblock %}
+{% block extra_css %}
+<style>
+.msg-card{background:white;border-radius:16px;padding:18px;box-shadow:var(--shadow);border:2px solid transparent;transition:all .2s;margin-bottom:12px}
+.msg-card:hover{border-color:var(--sky)}
+.compose-box{background:white;border-radius:20px;padding:28px;box-shadow:var(--shadow);border-top:4px solid var(--sky)}
+</style>
+{% endblock %}
+{% block content %}
+<div class="page-header">
+  <div class="container">
+    <h2>✉️ Messagerie</h2>
+    <p style="color:rgba(255,255,255,.6);font-weight:600;margin:4px 0 0">Communiquez avec l'équipe pédagogique</p>
+  </div>
+</div>
+<div class="container-fluid px-4 pb-5">
+  <div class="row g-4">
+    <div class="col-lg-4">
+      <div class="compose-box">
+        <h5 class="fw-800 mb-4">📨 Nouveau message</h5>
+        <form method="POST" action="{{ url_for('message_envoyer') }}">
+          <div class="mb-3">
+            <label class="lbl">👤 Destinataire</label>
+            <select name="destinataire_id" class="form-select-fun" required>
+              <option value="">Choisir...</option>
+              {% for u in users %}
+              <option value="{{ u.id }}">
+                {{ '⚙️' if u.role=='admin' else '👨‍🏫' if u.role=='enseignant' else '🎓' }}
+                {{ u.prenom }} {{ u.nom }} ({{ u.role }})
+              </option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="mb-4">
+            <label class="lbl">💬 Message</label>
+            <textarea name="contenu" class="form-control-fun" rows="5" placeholder="Votre message..." required></textarea>
+          </div>
+          <button type="submit" class="btn btn-fun btn-sky w-100 fw-800">🚀 Envoyer</button>
+        </form>
+      </div>
+    </div>
+    <div class="col-lg-8">
+      <h5 class="fw-800 mb-3">📥 Messages reçus ({{ messages|length }})</h5>
+      {% for msg in messages %}
+      <div class="msg-card">
+        <div class="d-flex gap-3">
+          <div style="width:44px;height:44px;border-radius:14px;background:linear-gradient(135deg,var(--sky),var(--violet));display:flex;align-items:center;justify-content:center;font-family:'Fredoka One',cursive;color:white;font-size:1.1rem;flex-shrink:0">{{ msg.expediteur.prenom[0] }}</div>
+          <div class="flex-fill">
+            <div class="d-flex justify-content-between">
+              <div class="fw-800">{{ msg.expediteur.prenom }} {{ msg.expediteur.nom }}
+                <span class="role-badge role-{{ msg.expediteur.role }} ms-1" style="font-size:.7rem">{{ msg.expediteur.role }}</span>
+              </div>
+              <div class="text-muted small fw-600">{{ msg.date_envoi.strftime('%d/%m/%Y %H:%M') }}</div>
+            </div>
+            <p class="small fw-600 mt-2 mb-0" style="line-height:1.7;color:#374151">{{ msg.contenu }}</p>
+          </div>
+        </div>
+      </div>
+      {% else %}
+      <div class="text-center py-5">
+        <div style="font-size:4rem;margin-bottom:12px">📭</div>
+        <h5 class="fw-800">Aucun message reçu</h5>
+        <p class="text-muted fw-600">Votre boîte de réception est vide.</p>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+{% endblock %}

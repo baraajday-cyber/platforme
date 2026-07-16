@@ -1,0 +1,80 @@
+{% extends "base.html" %}
+{% block title %}📋 Rendus — {{ travail.titre }}{% endblock %}
+{% block content %}
+<div class="page-header">
+  <div class="container">
+    <nav aria-label="breadcrumb" class="mb-2">
+      <ol class="breadcrumb mb-0">
+        <li class="breadcrumb-item"><a href="{{ url_for('teacher_cours_contenu', cid=travail.cours_id) }}" class="text-white-50">{{ travail.cours.titre[:25] }}</a></li>
+        <li class="breadcrumb-item active text-sun">Rendus</li>
+      </ol>
+    </nav>
+    <h2>📋 Rendus — {{ travail.titre }}</h2>
+    <p style="color:rgba(255,255,255,.6);font-weight:600;margin:4px 0 0">
+      {{ travail.rendus|length }} rendu(s) · {% if travail.date_limite %}⏰ Date limite : {{ travail.date_limite.strftime('%d/%m/%Y %H:%M') }}{% else %}Pas de date limite{% endif %}
+    </p>
+  </div>
+</div>
+<div class="container-fluid px-4 pb-5">
+  <!-- Description du travail -->
+  <div style="background:#fffbeb;border-radius:var(--radius);padding:20px;margin-bottom:24px;border-left:5px solid var(--sun)">
+    <div class="fw-800 mb-1">📝 Consignes :</div>
+    <p class="mb-0 fw-600" style="line-height:1.7;color:#374151">{{ travail.description }}</p>
+    {% if travail.nom_fichier %}
+    <div class="mt-2"><a href="{{ url_for('download_file', filename=travail.nom_fichier) }}" class="btn btn-fun btn-sun btn-sm">📎 Télécharger le sujet</a></div>
+    {% endif %}
+  </div>
+
+  {% if travail.rendus %}
+  <div class="table-fun">
+    <table class="table mb-0">
+      <thead><tr><th>Élève</th><th>Date rendu</th><th>Fichier</th><th>Commentaire</th><th>Note /20</th><th>Feedback</th><th>Action</th></tr></thead>
+      <tbody>
+        {% for r in travail.rendus %}
+        <tr>
+          <td><div class="fw-800">{{ r.eleve.prenom }} {{ r.eleve.nom }}</div><div class="text-muted small">{{ r.eleve.email }}</div></td>
+          <td class="small fw-600">{{ r.date_rendu.strftime('%d/%m/%Y %H:%M') }}</td>
+          <td>
+            {% if r.nom_fichier %}
+            <a href="{{ url_for('download_file', filename=r.nom_fichier) }}" class="btn btn-fun btn-sky btn-sm" style="font-size:.75rem">⬇️ Télécharger</a>
+            {% else %}<span class="text-muted small">—</span>{% endif %}
+          </td>
+          <td class="small fw-600" style="max-width:150px">{{ r.commentaire[:60] if r.commentaire else '—' }}</td>
+          <td>
+            {% if r.note is not none %}
+            <span class="badge-fun" style="background:{{ '#d1fae5' if r.note >= 10 else '#fee2e2' }};color:{{ '#065f46' if r.note >= 10 else '#991b1b' }};font-size:.9rem;padding:5px 12px">{{ r.note }}/20</span>
+            {% else %}<span class="text-muted small">Non noté</span>{% endif %}
+          </td>
+          <td class="small text-muted fw-600" style="max-width:150px">{{ r.feedback[:50] if r.feedback else '—' }}</td>
+          <td>
+            <button class="btn btn-fun btn-sun btn-sm" style="font-size:.75rem" onclick="toggleNote({{ r.id }})">✏️ Noter</button>
+            <div id="note-form-{{ r.id }}" class="d-none mt-2" style="min-width:200px">
+              <form method="POST" action="{{ url_for('teacher_noter_rendu', rid=r.id) }}">
+                <input type="number" name="note" class="form-control-fun mb-1" value="{{ r.note or '' }}" min="0" max="20" step="0.5" placeholder="Note /20">
+                <textarea name="feedback" class="form-control-fun mb-1" rows="2" placeholder="Feedback...">{{ r.feedback or '' }}</textarea>
+                <button type="submit" class="btn btn-fun btn-mint w-100 btn-sm fw-800">💾 Enregistrer</button>
+              </form>
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="text-center py-5">
+    <div style="font-size:4rem;margin-bottom:12px">📭</div>
+    <h5 class="fw-800">Aucun rendu pour le moment</h5>
+    <p class="text-muted fw-600">Les élèves n'ont pas encore rendu ce travail.</p>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}
+{% block extra_js %}
+<script>
+function toggleNote(id) {
+  const el = document.getElementById('note-form-' + id);
+  el.classList.toggle('d-none');
+}
+</script>
+{% endblock %}

@@ -1,0 +1,74 @@
+{% extends "base.html" %}
+{% block title %}{{ 'Modifier' if user else 'Créer' }} un utilisateur{% endblock %}
+{% block content %}
+<div class="page-header">
+  <div class="container">
+    <nav aria-label="breadcrumb" class="mb-2">
+      <ol class="breadcrumb mb-0">
+        <li class="breadcrumb-item"><a href="{{ url_for('admin_users') }}" class="text-white-50">👥 Utilisateurs</a></li>
+        <li class="breadcrumb-item active text-sun">{{ 'Modifier' if user else 'Créer' }}</li>
+      </ol>
+    </nav>
+    <h2>{{ '✏️ Modifier' if user else '➕ Créer' }} un utilisateur</h2>
+  </div>
+</div>
+<div class="container pb-5">
+<div class="row justify-content-center"><div class="col-lg-6">
+<div class="card-fun p-5">
+  <form method="POST">
+    <div class="row g-3 mb-3">
+      <div class="col-6">
+        <label class="lbl">👤 Prénom *</label>
+        <input type="text" name="prenom" class="form-control-fun" value="{{ user.prenom if user else '' }}" required>
+      </div>
+      <div class="col-6">
+        <label class="lbl">👤 Nom *</label>
+        <input type="text" name="nom" class="form-control-fun" value="{{ user.nom if user else '' }}" required>
+      </div>
+      <div class="col-12">
+        <label class="lbl">📧 Email *</label>
+        <input type="email" name="email" class="form-control-fun" value="{{ user.email if user else '' }}" required>
+      </div>
+      <div class="col-12">
+        <label class="lbl">🎭 Rôle *</label>
+        <select name="role" class="form-select-fun" required>
+          <option value="eleve"      {{ 'selected' if user and user.role=='eleve' }}>🎓 Élève</option>
+          <option value="enseignant" {{ 'selected' if user and user.role=='enseignant' }}>👨‍🏫 Enseignant</option>
+          <option value="admin"      {{ 'selected' if user and user.role=='admin' }}>⚙️ Admin</option>
+        </select>
+      </div>
+
+      <div class="col-12">
+        <label class="lbl">🏷️ Groupe (élèves)</label>
+        <select name="groupe_id" class="form-select-fun">
+          <option value="">— Aucun —</option>
+          {% for g in groupes or [] %}
+            <option value="{{ g.id }}" {{ 'selected' if user and user.groupe_id==g.id }}>{{ g.nom }}</option>
+          {% endfor %}
+        </select>
+        <div class="text-muted small fw-600 mt-1">Pour restreindre l’accès des élèves aux cours compatibles.</div>
+      </div>
+      <div class="col-12">
+        <label class="lbl">🔒 {{ 'Nouveau mot de passe' if user else 'Mot de passe *' }}</label>
+        <input type="password" name="{{ 'new_password' if user else 'password' }}" class="form-control-fun"
+               placeholder="••••••••  (min 6 caractères)" {{ '' if user else 'required' }} minlength="6">
+        {% if user %}<div class="text-muted small fw-600 mt-1">Laisser vide pour ne pas changer</div>{% endif %}
+      </div>
+      {% if user %}
+      <div class="col-12">
+        <div class="form-check form-switch">
+          <input class="form-check-input" type="checkbox" name="actif" id="actif" style="width:44px;height:24px" {{ 'checked' if user.actif }}>
+          <label class="form-check-label fw-800" for="actif">✅ Compte actif</label>
+        </div>
+      </div>
+      {% endif %}
+    </div>
+    <div class="d-flex gap-3">
+      <button type="submit" class="btn btn-fun btn-sky fw-800 px-5">💾 Enregistrer</button>
+      <a href="{{ url_for('admin_users') }}" class="btn btn-fun btn-outline-fun px-4">← Annuler</a>
+    </div>
+  </form>
+</div>
+</div></div>
+</div>
+{% endblock %}

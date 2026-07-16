@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% block title %}➕ Nouveau travail{% endblock %}
+{% block content %}
+<div class="page-header"><div class="container"><h2>➕ Créer un travail à faire</h2><p style="color:rgba(255,255,255,.6);font-weight:600;margin-top:4px">Cours : <strong style="color:var(--sun)">{{ cours.titre }}</strong></p></div></div>
+<div class="container pb-5"><div class="row justify-content-center"><div class="col-lg-7">
+<div class="card-fun p-5">
+  <form method="POST" enctype="multipart/form-data">
+    <div class="mb-4">
+      <label class="lbl">📝 Titre du travail *</label>
+      <input type="text" name="titre" class="form-control-fun" placeholder="Ex : Exercice chapitre 3, Devoir maison n°2..." required>
+    </div>
+    <div class="mb-4">
+      <label class="lbl">📋 Description / Consignes *</label>
+      <textarea name="description" class="form-control-fun" rows="6" placeholder="Expliquez clairement ce que les élèves doivent faire..." required></textarea>
+    </div>
+    <div class="mb-4">
+      <label class="lbl">⏰ Date limite de rendu</label>
+      <input type="datetime-local" name="date_limite" class="form-control-fun">
+      <div class="text-muted small fw-600 mt-1">Optionnel — laisser vide si pas de date limite</div>
+    </div>
+    <div class="mb-5">
+      <label class="lbl">📎 Fichier joint (sujet, document de référence...)</label>
+      <input type="file" name="fichier" class="form-control-fun" accept=".pdf,.docx,.pptx,.zip">
+    </div>
+    <div class="d-flex gap-3">
+      <button type="submit" class="btn btn-fun btn-coral fw-800 px-5">🚀 Publier le travail</button>
+      <a href="{{ url_for('teacher_cours_contenu', cid=cours.id) }}" class="btn btn-fun btn-outline-fun px-4">← Annuler</a>
+    </div>
+  </form>
+</div>
+</div></div></div>
+{% endblock %}

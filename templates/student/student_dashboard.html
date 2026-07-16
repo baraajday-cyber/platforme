@@ -1,0 +1,132 @@
+{% extends "base.html" %}
+{% block title %}🎓 Mon Espace — BrainBurst{% endblock %}
+{% block content %}
+<div class="page-header">
+  <div class="container">
+    <h2>🎓 Bonjour, {{ current_user.prenom }} ! <span class="emoji-bounce" style="display:inline-block">🚀</span></h2>
+    <p style="color:rgba(255,255,255,.6);font-weight:600;margin:4px 0 0">Ton tableau de bord apprenant</p>
+  </div>
+</div>
+<div class="container-fluid px-4 pb-5">
+  <!-- Stats -->
+  <div class="row g-4 mb-5">
+    {% set total_prog = 0 %}
+    {% if inscriptions|length > 0 %}
+      {% set total_prog = (inscriptions|sum(attribute='progression') // inscriptions|length) %}
+    {% endif %}
+    {% for num, lbl, emoji, grad in [
+      (inscriptions|length, 'Cours suivis', '📚', 'linear-gradient(135deg,#4D96FF,#C77DFF)'),
+      (total_prog, '% progression moy.', '📈', 'linear-gradient(135deg,#6BCB77,#4D96FF)'),
+      (travaux_pending|length, 'Travaux en attente', '📝', 'linear-gradient(135deg,#FFD93D,#FF6B6B)'),
+      (seances|length, 'Seances a venir', '📅', 'linear-gradient(135deg,#C77DFF,#FF6B6B)'),
+    ] %}
+    <div class="col-md-3 col-6">
+      <div class="stat-card" data-emoji="{{ emoji }}" style="background:{{ grad }}">
+        <span class="stat-num">{{ num }}</span>
+        <span class="stat-lbl">{{ emoji }} {{ lbl }}</span>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+
+  <!-- Annonces -->
+  {% if annonces %}
+  <div class="row g-3 mb-4">
+    {% for a in annonces %}
+    <div class="col-md-4">
+      <div style="background:#fffbeb;border-radius:14px;padding:18px;border-left:4px solid var(--sun);box-shadow:var(--shadow)">
+        <div class="fw-800 mb-1"><span style="color:var(--sun)">📢</span> {{ a.titre }}</div>
+        <p class="text-muted small fw-600 mb-0" style="line-height:1.6">{{ a.contenu[:100] }}...</p>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  <div class="row g-4">
+    <!-- Mes cours -->
+    <div class="col-lg-8">
+      <div class="d-flex justify-content-between align-items-center mb-3">
+        <h5 class="fw-800 mb-0">📚 Mes cours</h5>
+        <a href="{{ url_for('liste_cours') }}" class="btn btn-fun btn-sky btn-sm">+ S'inscrire à un cours</a>
+      </div>
+      {% if inscriptions %}
+      <div class="row g-3">
+        {% for insc in inscriptions %}
+        <div class="col-md-6">
+          <div class="card-fun p-4">
+            <div class="d-flex justify-content-between mb-2">
+              {% if insc.cours.matiere %}
+              <span class="badge-fun" style="background:{{ insc.cours.matiere.couleur }}22;color:{{ insc.cours.matiere.couleur }}">{{ insc.cours.matiere.icone }} {{ insc.cours.matiere.nom }}</span>
+              {% endif %}
+              <span class="badge-fun badge-{{ 'debutant' if insc.cours.niveau=='Débutant' else 'intermediaire' if insc.cours.niveau=='Intermédiaire' else 'avance' }}">{{ insc.cours.niveau }}</span>
+            </div>
+            <h6 class="fw-800 mb-1">{{ insc.cours.titre }}</h6>
+            <div class="text-muted small fw-600 mb-3">👨‍🏫 {{ insc.cours.enseignant.prenom }} {{ insc.cours.enseignant.nom }}</div>
+            <div class="d-flex justify-content-between small fw-700 mb-1">
+              <span>📈 Progression</span>
+              <span style="color:var(--sky)">{{ insc.progression }}%</span>
+            </div>
+            <div class="prog-bar-wrap mb-3">
+              <div class="prog-bar" style="width:{{ insc.progression }}%"></div>
+            </div>
+            <div class="d-flex gap-2 text-muted small fw-600 mb-3">
+              <span>📁 {{ insc.cours.ressources|length }} ressources</span>
+              <span>📝 {{ insc.cours.travaux|length }} travaux</span>
+            </div>
+            <a href="{{ url_for('cours_apprendre', cid=insc.cours_id) }}" class="btn btn-fun btn-sky w-100 fw-800">▶️ Accéder au cours</a>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+      {% else %}
+      <div class="card-fun p-5 text-center">
+        <div style="font-size:4rem;margin-bottom:12px">📭</div>
+        <h5 class="fw-800">Pas encore inscrit</h5>
+        <p class="text-muted fw-600 mb-3">Explore le catalogue et inscris-toi à un cours !</p>
+        <a href="{{ url_for('liste_cours') }}" class="btn btn-fun btn-sky px-5">📚 Voir les cours</a>
+      </div>
+      {% endif %}
+    </div>
+
+    <div class="col-lg-4">
+      <!-- Travaux en attente -->
+      {% if travaux_pending %}
+      <div class="card-fun p-4 mb-4">
+        <h6 class="fw-800 mb-3">📝 Travaux à rendre</h6>
+        {% for item in travaux_pending %}
+        <div style="background:#fff1f0;border-radius:12px;padding:12px;margin-bottom:8px;border-left:3px solid var(--coral)">
+          <div class="fw-800 small">{{ item.travail.titre }}</div>
+          <div class="text-muted small fw-600">📖 {{ item.cours.titre[:25] }}</div>
+          {% if item.travail.date_limite %}
+          <div class="small fw-700" style="color:var(--coral)">⏰ {{ item.travail.date_limite.strftime('%d/%m/%Y') }}</div>
+          {% endif %}
+          <a href="{{ url_for('cours_apprendre', cid=item.cours.id) }}" class="btn btn-fun btn-coral btn-sm mt-1 w-100" style="font-size:.75rem">📤 Rendre le travail</a>
+        </div>
+        {% endfor %}
+      </div>
+      {% endif %}
+
+      <!-- Prochaines séances -->
+      <div class="card-fun p-4">
+        <div class="d-flex justify-content-between mb-3">
+          <h6 class="fw-800 mb-0">📅 Mes séances</h6>
+          <a href="{{ url_for('student_calendrier') }}" class="btn btn-fun btn-violet btn-sm" style="font-size:.75rem">Calendrier</a>
+        </div>
+        {% for s in seances %}
+        <div style="background:#f0f4ff;border-radius:12px;padding:12px;margin-bottom:8px">
+          <div class="fw-800 small">{{ s.titre }}</div>
+          <div class="text-muted small fw-600">📖 {{ s.cours.titre[:22] }}</div>
+          <div class="text-sky fw-700 small">{{ s.date_seance.strftime('%d/%m/%Y %H:%M') }}</div>
+          {% if s.lien_meet %}
+          <a href="{{ s.lien_meet }}" target="_blank" class="btn btn-fun btn-sky btn-sm mt-1 w-100" style="font-size:.75rem">🔗 Rejoindre</a>
+          {% endif %}
+        </div>
+        {% else %}
+        <div class="text-center text-muted fw-600 small py-2">📭 Aucune séance planifiée</div>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

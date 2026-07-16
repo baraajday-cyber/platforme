@@ -1,0 +1,172 @@
+{% extends "base.html" %}
+{% block title %}⚙️ {{ cours.titre }} — Contenu{% endblock %}
+{% block extra_css %}
+<style>
+.section-block{background:white;border-radius:var(--radius);padding:28px;box-shadow:var(--shadow);margin-bottom:24px}
+.resource-item{background:#f8fafc;border-radius:12px;padding:14px 16px;margin-bottom:10px;display:flex;align-items:center;gap:12px;border:2px solid transparent;transition:all .2s}
+.resource-item:hover{border-color:var(--sky);background:#f0f4ff}
+.travail-item{background:#fffbeb;border-radius:12px;padding:14px 16px;margin-bottom:10px;display:flex;align-items:center;gap:12px;border-left:4px solid var(--sun)}
+.add-box{border:2px dashed #cbd5e1;border-radius:14px;padding:20px;margin-top:16px}
+.add-box .form-control-fun,.add-box .form-select-fun{font-size:.88rem;padding:9px 12px}
+.icon-btn{width:34px;height:34px;border-radius:9px;border:2px solid;display:flex;align-items:center;justify-content:center;font-size:.82rem;cursor:pointer;text-decoration:none;transition:all .2s;flex-shrink:0;background:transparent}
+.icon-btn-edit{border-color:var(--sky);color:var(--sky)}.icon-btn-edit:hover{background:var(--sky);color:white}
+.icon-btn-del{border-color:var(--coral);color:var(--coral)}.icon-btn-del:hover{background:var(--coral);color:white}
+</style>
+{% endblock %}
+{% block content %}
+<div class="page-header">
+  <div class="container">
+    <nav aria-label="breadcrumb" class="mb-2">
+      <ol class="breadcrumb mb-0">
+        <li class="breadcrumb-item"><a href="{{ url_for('teacher_dashboard') }}" class="text-white-50">Dashboard</a></li>
+        <li class="breadcrumb-item active text-sun">{{ cours.titre[:35] }}</li>
+      </ol>
+    </nav>
+    <div class="d-flex align-items-center gap-3">
+      <h2 class="mb-0">⚙️ {{ cours.titre }}</h2>
+      <span class="badge-fun {{ 'badge-publie' if cours.publie else 'badge-brouillon' }}">{{ '✅ Publié' if cours.publie else '📝 Brouillon' }}</span>
+    </div>
+  </div>
+</div>
+<div class="container-fluid px-4 pb-5">
+  <!-- Actions -->
+  <div style="background:white;border-radius:var(--radius);padding:16px 20px;box-shadow:var(--shadow);margin-bottom:24px;display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+    <span class="fw-800">🎛️ Actions :</span>
+    <a href="{{ url_for('teacher_cours_editer', cid=cours.id) }}" class="btn btn-fun btn-sky btn-sm">✏️ Modifier les infos</a>
+    <a href="{{ url_for('cours_apprendre', cid=cours.id) }}" class="btn btn-fun btn-outline-fun btn-sm" target="_blank">👁️ Aperçu élève</a>
+    <span class="ms-auto text-muted small fw-700">👥 {{ cours.inscriptions|length }} élève(s) inscrit(s)</span>
+  </div>
+
+  <div class="row g-4">
+
+    <!-- RESSOURCES (PDFs + Vidéos) -->
+    <div class="col-lg-8">
+      <div class="section-block">
+        <h5 class="fw-800 mb-4">📁 Ressources du cours <span class="text-muted fw-600 small">(PDFs, Vidéos, Documents)</span></h5>
+
+        {% if cours.ressources %}
+        {% for r in cours.ressources %}
+        <div class="resource-item">
+          <div style="width:38px;height:38px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:1.1rem;flex-shrink:0;background:{{ '#fee2e2' if r.type_fichier=='pdf' else '#fce7f3' if r.type_fichier=='video' else '#f0f4ff' }}">
+            {{ '📕' if r.type_fichier=='pdf' else '🎬' if r.type_fichier=='video' else '📎' }}
+          </div>
+          <div class="flex-fill">
+            <div class="fw-800 small">{{ r.titre }}</div>
+            <div class="text-muted" style="font-size:.75rem;font-weight:600">
+              {{ r.type_fichier.upper() }} · {{ r.date_depot.strftime('%d/%m/%Y') }}
+              {% if r.nom_fichier %} · 📎 {{ r.nom_fichier[:30] }}{% endif %}
+              {% if r.url_externe %} · 🔗 Lien externe{% endif %}
+            </div>
+          </div>
+          {% if r.nom_fichier %}
+          <a href="{{ url_for('download_file', filename=r.nom_fichier) }}" class="icon-btn icon-btn-edit" title="Télécharger">⬇️</a>
+          {% elif r.url_externe %}
+          <a href="{{ r.url_externe }}" target="_blank" class="icon-btn icon-btn-edit" title="Ouvrir">🔗</a>
+          {% endif %}
+          <form method="POST" action="{{ url_for('teacher_ressource_supprimer', rid=r.id) }}" onsubmit="return confirm('Supprimer ?')">
+            <button type="submit" class="icon-btn icon-btn-del">🗑️</button>
+          </form>
+        </div>
+        {% endfor %}
+        {% else %}
+        <div class="text-center py-4 text-muted fw-600">📭 Aucune ressource déposée</div>
+        {% endif %}
+
+        <!-- Ajouter ressource -->
+        <div class="add-box">
+          <div class="fw-800 small text-sky mb-3">➕ Déposer une ressource</div>
+          <form method="POST" action="{{ url_for('teacher_ressource_ajouter', cid=cours.id) }}" enctype="multipart/form-data">
+            <div class="row g-2">
+              <div class="col-md-6">
+                <input type="text" name="titre" class="form-control-fun" placeholder="Titre de la ressource *" required>
+              </div>
+              <div class="col-md-6">
+                <textarea name="description" class="form-control-fun" rows="1" placeholder="Description (optionnel)"></textarea>
+              </div>
+              <div class="col-12">
+                <label class="lbl" style="font-size:.8rem">📎 Fichier (PDF, vidéo, document...)</label>
+                <input type="file" name="fichier" class="form-control-fun" accept=".pdf,.mp4,.avi,.mov,.pptx,.docx,.zip">
+              </div>
+              <div class="col-12">
+                <label class="lbl" style="font-size:.8rem">🔗 OU Lien externe (YouTube, Drive...)</label>
+                <input type="url" name="url_externe" class="form-control-fun" placeholder="https://youtube.com/watch?v=...">
+              </div>
+              <div class="col-12">
+                <button type="submit" class="btn btn-fun btn-mint fw-800 w-100">📤 Déposer la ressource</button>
+              </div>
+            </div>
+          </form>
+        </div>
+      </div>
+
+      <!-- TRAVAUX -->
+      <div class="section-block">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+          <h5 class="fw-800 mb-0">📝 Travaux à faire</h5>
+          <a href="{{ url_for('teacher_travail_creer', cid=cours.id) }}" class="btn btn-fun btn-coral btn-sm">➕ Nouveau travail</a>
+        </div>
+        {% for t in cours.travaux %}
+        <div class="travail-item">
+          <div style="font-size:1.5rem">📝</div>
+          <div class="flex-fill">
+            <div class="fw-800 small">{{ t.titre }}</div>
+            <div class="text-muted small fw-600">
+              {% if t.date_limite %}⏰ Date limite : {{ t.date_limite.strftime('%d/%m/%Y %H:%M') }}{% else %}Pas de date limite{% endif %}
+              · {{ t.rendus|length }} rendu(s)
+            </div>
+          </div>
+          <a href="{{ url_for('teacher_travail_rendus', tid=t.id) }}" class="btn btn-fun btn-sun btn-sm" style="font-size:.78rem">📋 Rendus ({{ t.rendus|length }})</a>
+          <form method="POST" action="{{ url_for('teacher_travail_supprimer', tid=t.id) }}" onsubmit="return confirm('Supprimer ce travail ?')">
+            <button type="submit" class="icon-btn icon-btn-del">🗑️</button>
+          </form>
+        </div>
+        {% else %}
+        <div class="text-center py-4 text-muted fw-600">📭 Aucun travail déposé</div>
+        {% endfor %}
+      </div>
+    </div>
+
+    <!-- INFOS + SÉANCES -->
+    <div class="col-lg-4">
+      <div class="section-block">
+        <h6 class="fw-800 mb-3">📊 Statistiques</h6>
+        <div class="d-flex flex-column gap-2">
+          <div class="d-flex justify-content-between p-2" style="background:#f8fafc;border-radius:10px">
+            <span class="fw-700 small">👥 Élèves inscrits</span>
+            <span class="fw-900 text-sky">{{ cours.inscriptions|length }}</span>
+          </div>
+          <div class="d-flex justify-content-between p-2" style="background:#f8fafc;border-radius:10px">
+            <span class="fw-700 small">📁 Ressources</span>
+            <span class="fw-900 text-sky">{{ cours.ressources|length }}</span>
+          </div>
+          <div class="d-flex justify-content-between p-2" style="background:#f8fafc;border-radius:10px">
+            <span class="fw-700 small">📝 Travaux</span>
+            <span class="fw-900 text-sky">{{ cours.travaux|length }}</span>
+          </div>
+          <div class="d-flex justify-content-between p-2" style="background:#f8fafc;border-radius:10px">
+            <span class="fw-700 small">📅 Séances</span>
+            <span class="fw-900 text-sky">{{ cours.seances|length }}</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Séances de ce cours -->
+      <div class="section-block">
+        <h6 class="fw-800 mb-3">📅 Séances en ligne</h6>
+        <p class="text-muted small fw-600 mb-3">Les séances sont planifiées par l'administrateur. 
+          <a href="{{ url_for('teacher_calendrier') }}">Voir le calendrier →</a>
+        </p>
+        {% for s in cours.seances|sort(attribute='date_seance') %}
+        <div style="background:#f0f4ff;border-radius:12px;padding:12px;margin-bottom:8px">
+          <div class="fw-800 small">{{ s.titre }}</div>
+          <div class="text-sky fw-700 small">{{ s.date_seance.strftime('%d/%m/%Y %H:%M') }} · {{ s.duree }}min</div>
+          {% if s.lien_meet %}<a href="{{ s.lien_meet }}" target="_blank" class="btn btn-fun btn-sky btn-sm mt-1" style="font-size:.72rem">🔗 Rejoindre</a>{% endif %}
+        </div>
+        {% else %}
+        <div class="text-center text-muted fw-600 small">📭 Aucune séance planifiée</div>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

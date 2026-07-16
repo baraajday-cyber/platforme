@@ -1,0 +1,82 @@
+{% extends "base.html" %}
+{% block title %}📚 Catalogue des cours{% endblock %}
+{% block extra_css %}
+<style>
+.course-card{background:white;border-radius:var(--radius);overflow:hidden;box-shadow:var(--shadow);border:3px solid transparent;transition:all .3s;height:100%}
+.course-card:hover{border-color:var(--sky);transform:translateY(-6px)}
+.course-thumb{height:150px;display:flex;align-items:center;justify-content:center;font-size:3.5rem}
+</style>
+{% endblock %}
+{% block content %}
+<div class="page-header">
+  <div class="container">
+    <h2>📚 Catalogue des cours</h2>
+    <p style="color:rgba(255,255,255,.6);font-weight:600;margin:4px 0 0">{{ cours|length }} cours disponibles</p>
+  </div>
+</div>
+<div class="container-fluid px-4 pb-5">
+  <!-- Filtres -->
+  <div class="card-fun p-4 mb-4">
+    <form method="GET" class="row g-3 align-items-end">
+      <div class="col-md-4">
+        <label class="lbl">🔍 Rechercher</label>
+        <input type="text" name="q" class="form-control-fun" value="{{ q }}" placeholder="Titre du cours...">
+      </div>
+      <div class="col-md-3">
+        <label class="lbl">📚 Matière</label>
+        <select name="matiere_id" class="form-select-fun">
+          <option value="">Toutes</option>
+          {% for m in matieres %}<option value="{{ m.id }}" {{ 'selected' if matiere_id==m.id|string }}>{{ m.icone }} {{ m.nom }}</option>{% endfor %}
+        </select>
+      </div>
+      <div class="col-md-3">
+        <label class="lbl">📊 Niveau</label>
+        <select name="niveau" class="form-select-fun">
+          <option value="">Tous</option>
+          {% for n in ['Débutant','Intermédiaire','Avancé'] %}<option value="{{ n }}" {{ 'selected' if niveau==n }}>{{ n }}</option>{% endfor %}
+        </select>
+      </div>
+      <div class="col-md-2">
+        <button type="submit" class="btn btn-fun btn-sky w-100 fw-800">Filtrer</button>
+      </div>
+    </form>
+  </div>
+
+  {% set grads = ['linear-gradient(135deg,#FFD93D,#FF6B6B)','linear-gradient(135deg,#6BCB77,#4D96FF)','linear-gradient(135deg,#C77DFF,#FF6B6B)','linear-gradient(135deg,#4D96FF,#6BCB77)','linear-gradient(135deg,#FFB347,#FF6B6B)','linear-gradient(135deg,#C77DFF,#4D96FF)'] %}
+  {% set emojis = ['💻','🧪','🔢','🌍','🎸','🎨','📖','🔬','🏋️','🌿','🎭','✈️'] %}
+  <div class="row g-4">
+    {% for c in cours %}
+    <div class="col-md-4 col-sm-6 fade-up" style="animation-delay:{{ loop.index0 * 0.06 }}s">
+      <div class="course-card">
+        <div class="course-thumb" style="background:{{ grads[loop.index0 % 6] }}">{{ emojis[loop.index0 % 12] }}</div>
+        <div class="p-4">
+          <div class="d-flex gap-2 mb-3 flex-wrap">
+            {% if c.matiere %}<span class="badge-fun" style="background:{{ c.matiere.couleur }}22;color:{{ c.matiere.couleur }}">{{ c.matiere.icone }} {{ c.matiere.nom }}</span>{% endif %}
+            <span class="badge-fun badge-{{ 'debutant' if c.niveau=='Débutant' else 'intermediaire' if c.niveau=='Intermédiaire' else 'avance' }}">{{ c.niveau }}</span>
+            {% if c.id in inscriptions_ids %}<span class="badge-fun badge-publie">✅ Inscrit</span>{% endif %}
+          </div>
+          <h6 class="fw-800 mb-1">{{ c.titre }}</h6>
+          <p class="text-muted small fw-600 mb-3" style="line-height:1.5">{{ c.description[:90] }}...</p>
+          <div class="d-flex gap-3 text-muted small fw-700 mb-3">
+            <span>👨‍🏫 {{ c.enseignant.prenom }}</span>
+            <span>👥 {{ c.inscriptions|length }}</span>
+            <span>📁 {{ c.ressources|length }}</span>
+          </div>
+          {% if c.id in inscriptions_ids %}
+          <a href="{{ url_for('cours_apprendre', cid=c.id) }}" class="btn btn-fun btn-mint w-100 fw-800">▶️ Continuer</a>
+          {% else %}
+          <a href="{{ url_for('cours_detail', cid=c.id) }}" class="btn btn-fun btn-sky w-100 fw-800">👀 Voir le cours</a>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+    {% else %}
+    <div class="col-12 text-center py-5">
+      <div style="font-size:4rem;margin-bottom:12px">📭</div>
+      <h5 class="fw-800">Aucun cours trouvé</h5>
+      <a href="{{ url_for('liste_cours') }}" class="btn btn-fun btn-coral mt-2">🔄 Réinitialiser</a>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+{% endblock %}
