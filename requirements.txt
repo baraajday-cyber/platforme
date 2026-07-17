@@ -1,10 +1,15 @@
+blinker==1.9.0
+click==8.4.2
+colorama==0.4.6
 contourpy==1.3.3
 cycler==0.12.1
 diagrams @ file:///C:/Users/ASUS/Downloads/diagrams-0.24.1-py3-none-any.whl#sha256=c1e3267b018bdb66886a09214c7a7884796a0c28456f8aefdf38916a232c2362
 et_xmlfile==2.0.0
+Flask==3.1.3
 fonttools==4.61.1
 graphviz==0.20.3
 gunicorn==26.0.0
+itsdangerous==2.2.0
 Jinja2==3.1.5
 joblib==1.5.3
 kiwisolver==1.4.9
@@ -27,4 +32,4 @@ six==1.17.0
 threadpoolctl==3.6.0
 typing_extensions==4.15.0
 tzdata==2025.3
-Flask==2.3.3
+Werkzeug==3.1.8
