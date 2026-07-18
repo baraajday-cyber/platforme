@@ -180,7 +180,11 @@ footer::before{content:'';display:block;height:4px;
 <!-- SIDEBAR -->
 <div class="side-nav">
   <div style="padding:16px 20px 20px;border-bottom:1px solid rgba(255,255,255,.1)">
-    <div style="font-family:'Fredoka One',cursive;color:white;font-size:1.3rem">🧠 BrainBurst!</div>
+    <div style="display:flex;align-items:center;gap:10px;">
+      <img src="{{ url_for('static', filename='logo.png') }}" alt="BrainBurst" style="width:40px;height:40px;object-fit:contain;border-radius:12px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12)" onerror="this.style.display='none';"/>
+      <div style="font-family:'Fredoka One',cursive;color:white;font-size:1.3rem;line-height:1">🧠 BrainBurst!</div>
+    </div>
+
     <div class="mt-2">
       <span class="role-badge role-{{ current_user.role }}">
         {{ '⚙️ Admin' if current_user.role=='admin' else '👨‍🏫 Enseignant' if current_user.role=='enseignant' else '🎓 Élève' }}
@@ -239,7 +243,11 @@ footer::before{content:'';display:block;height:4px;
 <!-- NAVBAR publique -->
 <nav class="navbar navbar-expand-lg navbar-dark">
   <div class="container">
-    <a class="navbar-brand" href="{{ url_for('index') }}">🧠 Brain<span class="burst">Burst</span>!</a>
+    <a class="navbar-brand" href="{{ url_for('index') }}" style="display:flex;align-items:center;gap:10px;">
+      <img src="{{ url_for('static', filename='logo.png') }}" alt="BrainBurst" style="width:40px;height:40px;object-fit:contain;border-radius:12px;" onerror="this.style.display='none';"/>
+      <span>🧠 Brain<span class="burst">Burst</span>!</span>
+    </a>
+
     <div class="ms-auto d-flex gap-2 align-items-center">
       <a href="{{ url_for('login') }}" class="nav-pill nav-link">🔑 Connexion</a>
     </div>
