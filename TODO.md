@@ -11,7 +11,9 @@
 - [x] 2.3 Body padding-top: retirer quand sidebar présente
 
 ## Partie 3: Déploiement GitHub + Render
-- [ ] 3.1 Initialiser Git & faire le premier commit
-- [ ] 3.2 Créer le dépôt GitHub et push
-- [ ] 3.3 Configurer Render.com
+- [x] 3.1 Initialiser Git & faire le premier commit
+- [x] 3.2 Créer le dépôt GitHub et push
+- [x] 3.3 Configurer Render.com (Procfile déjà prêt : `web: gunicorn app:app`)
+
+✅ **Toutes les tâches sont terminées !**
 
