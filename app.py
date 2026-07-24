@@ -18,7 +18,7 @@ ALLOWED_EXTENSIONS = {'pdf', 'mp4', 'avi', 'mov', 'png', 'jpg', 'jpeg', 'pptx', 
 db = SQLAlchemy(app)
 login_manager = LoginManager(app)
 login_manager.login_view = 'login'
-login_manager.login_message = 'Connectez-vous pour acceder.'
+login_manager.login_message = 'Connectez-vous pour accéder.'
 
 # ═══════════════════════════════════════════════════════════
 #                        MODELES
@@ -44,6 +44,14 @@ class User(UserMixin, db.Model):
     msg_envoyes  = db.relationship('Message', foreign_keys='Message.expediteur_id',   backref='expediteur',   lazy=True)
     msg_recus    = db.relationship('Message', foreign_keys='Message.destinataire_id', backref='destinataire', lazy=True)
 
+    enseigne_matiere_associees = db.relationship(
+        'EnseignantMatiere',
+        backref='enseignant_user',
+        lazy=True,
+        cascade='all, delete-orphan'
+    )
+
+
 class Groupe(db.Model):
     """Classe / groupe universitaire (ex: Débutant/Standard/Excellent ou A/B/C)."""
     id           = db.Column(db.Integer, primary_key=True)
@@ -54,10 +62,30 @@ class Groupe(db.Model):
 
     eleves = db.relationship('User', backref='groupe', lazy=True)
 
+    # Enseignants affectés à ce groupe
+    enseignants = db.relationship('GroupEnseignant', backref='groupe', lazy=True, cascade='all, delete-orphan')
+
+
+class GroupEnseignant(db.Model):
+    """Table d'association Groupe ↔ Enseignant (n-n)."""
+    __tablename__ = 'group_teacher'
+    groupe_id     = db.Column(db.Integer, db.ForeignKey('groupe.id'), primary_key=True)
+    enseignant_id = db.Column(db.Integer, db.ForeignKey('user.id'),  primary_key=True)
+    date_creation = db.Column(db.DateTime, default=datetime.utcnow)
+
+    enseignant = db.relationship('User', backref='groupes_enseignant', lazy=True)
+
+
+class EnseignantMatiere(db.Model):
+    __tablename__ = 'enseignant_matiere'
+    enseignant_id = db.Column(db.Integer, db.ForeignKey('user.id'), primary_key=True)
+    matiere_id    = db.Column(db.Integer, db.ForeignKey('matiere.id'), primary_key=True)
+    date_creation = db.Column(db.DateTime, default=datetime.utcnow)
 
 class Matiere(db.Model):
     id          = db.Column(db.Integer, primary_key=True)
     nom         = db.Column(db.String(100), nullable=False, unique=True)
+
     description = db.Column(db.Text)
     couleur     = db.Column(db.String(20), default='#4D96FF')
     icone       = db.Column(db.String(10), default='📚')
@@ -296,6 +324,7 @@ def admin_users():
 @login_required
 def admin_user_creer():
     if not require_role('admin'): return redirect(url_for('dashboard'))
+
     if request.method == 'POST':
         email = request.form.get('email','').strip()
         if User.query.filter_by(email=email).first():
@@ -305,6 +334,7 @@ def admin_user_creer():
         if len(pwd) < 6:
             flash('Mot de passe trop court (min 6 caractères).', 'danger')
             return redirect(url_for('admin_user_creer'))
+
         user = User(
             nom    = request.form.get('nom','').strip(),
             prenom = request.form.get('prenom','').strip(),
@@ -314,17 +344,43 @@ def admin_user_creer():
             actif  = True,
             groupe_id = request.form.get('groupe_id') or None
         )
-        db.session.add(user); db.session.commit()
+        db.session.add(user)
+        db.session.commit()
+
+        # associer enseignant ↔ matière unique (exactement 1)
+        if user.role == 'enseignant':
+            matiere_id = request.form.get('matiere_id')
+            if not matiere_id:
+                flash('Un enseignant doit avoir exactement 1 matière assignée.', 'danger')
+                db.session.delete(user)
+                db.session.commit()
+                return redirect(url_for('admin_user_creer'))
+            try:
+                mid_int = int(matiere_id)
+            except (ValueError, TypeError):
+                flash('Matière invalide.', 'danger')
+                db.session.delete(user)
+                db.session.commit()
+                return redirect(url_for('admin_user_creer'))
+            db.session.add(EnseignantMatiere(enseignant_id=user.id, matiere_id=mid_int))
+            db.session.commit()
+
         flash(f'Compte créé pour {user.prenom} {user.nom} ! ✅', 'success')
         return redirect(url_for('admin_users'))
+
     groupes = Groupe.query.filter_by(actif=True).order_by(Groupe.nom).all()
-    return render_template('admin/admin_user_form.html', user=None, groupes=groupes)
+    matieres = Matiere.query.filter_by(actif=True).order_by(Matiere.nom).all()
+    return render_template('admin/admin_user_form.html', user=None, groupes=groupes, matieres=matieres)
+
 
 @app.route('/admin/users/<int:uid>/editer', methods=['GET','POST'])
 @login_required
 def admin_user_editer(uid):
+
     if not require_role('admin'): return redirect(url_for('dashboard'))
+
     user = User.query.get_or_404(uid)
+
     if request.method == 'POST':
         user.nom    = request.form.get('nom', user.nom).strip()
         user.prenom = request.form.get('prenom', user.prenom).strip()
@@ -332,17 +388,38 @@ def admin_user_editer(uid):
         user.role   = request.form.get('role', user.role)
         user.actif  = 'actif' in request.form
         user.groupe_id = request.form.get('groupe_id') or None
+
         nouveau_mdp = request.form.get('new_password','').strip()
         if nouveau_mdp:
             if len(nouveau_mdp) < 6:
                 flash('Mot de passe trop court.', 'danger')
                 return redirect(url_for('admin_user_editer', uid=uid))
             user.password = generate_password_hash(nouveau_mdp)
+
+        # mise à jour enseignant ↔ matière unique (exactement 1)
+        if user.role == 'enseignant':
+            EnseignantMatiere.query.filter_by(enseignant_id=user.id).delete()
+            matiere_id = request.form.get('matiere_id')
+            if not matiere_id:
+                flash('Un enseignant doit avoir exactement 1 matière assignée.', 'danger')
+                db.session.rollback()
+                return redirect(url_for('admin_user_editer', uid=uid))
+            try:
+                mid_int = int(matiere_id)
+            except (ValueError, TypeError):
+                flash('Matière invalide.', 'danger')
+                db.session.rollback()
+                return redirect(url_for('admin_user_editer', uid=uid))
+            db.session.add(EnseignantMatiere(enseignant_id=user.id, matiere_id=mid_int))
+
         db.session.commit()
         flash('Utilisateur mis à jour. ✅', 'success')
         return redirect(url_for('admin_users'))
+
     groupes = Groupe.query.filter_by(actif=True).order_by(Groupe.nom).all()
-    return render_template('admin/admin_user_form.html', user=user, groupes=groupes)
+    matieres = Matiere.query.filter_by(actif=True).order_by(Matiere.nom).all()
+    return render_template('admin/admin_user_form.html', user=user, groupes=groupes, matieres=matieres)
+
 
 @app.route('/admin/users/<int:uid>/supprimer', methods=['POST'])
 @login_required
@@ -366,7 +443,93 @@ def admin_user_toggle(uid):
     flash(f'Compte {"activé" if user.actif else "désactivé"}.', 'success')
     return redirect(url_for('admin_users'))
 
-# ── GESTION MATIÈRES ────────────────────────────────────────
+# ── GESTION GROUPES ──────────────────────────────────────────
+
+@app.route('/admin/groupes')
+@login_required
+def admin_groupes():
+    if not require_role('admin'): return redirect(url_for('dashboard'))
+    groupes = Groupe.query.order_by(Groupe.nom).all()
+    return render_template('admin/admin_groupes.html', groupes=groupes)
+
+@app.route('/admin/groupes/creer', methods=['GET','POST'])
+@login_required
+def admin_groupe_creer():
+    if not require_role('admin'): return redirect(url_for('dashboard'))
+    if request.method == 'POST':
+        g = Groupe(
+            nom=request.form.get('nom','').strip(),
+            description=request.form.get('description','').strip(),
+            actif='actif' in request.form
+        )
+        db.session.add(g)
+        db.session.commit()
+        flash('Groupe créé ! ✅', 'success')
+        return redirect(url_for('admin_groupes'))
+    return render_template('admin/admin_groupe_form.html', groupe=None)
+
+@app.route('/admin/groupes/<int:gid>/editer', methods=['GET','POST'])
+@login_required
+def admin_groupe_editer(gid):
+    if not require_role('admin'): return redirect(url_for('dashboard'))
+    g = Groupe.query.get_or_404(gid)
+    if request.method == 'POST':
+        g.nom = request.form.get('nom', g.nom).strip()
+        g.description = request.form.get('description', g.description or '').strip()
+        g.actif = 'actif' in request.form
+        db.session.commit()
+        flash('Groupe mis à jour. ✅', 'success')
+        return redirect(url_for('admin_groupes'))
+    return render_template('admin/admin_groupe_form.html', groupe=g)
+
+@app.route('/admin/groupes/<int:gid>/supprimer', methods=['POST'])
+@login_required
+def admin_groupe_supprimer(gid):
+    if not require_role('admin'): return redirect(url_for('dashboard'))
+    g = Groupe.query.get_or_404(gid)
+    db.session.delete(g)
+    db.session.commit()
+    flash('Groupe supprimé.', 'success')
+    return redirect(url_for('admin_groupes'))
+
+# ── GESTION AFFECTATION ENSEIGNANTS ↔ GROUPES ─────────────────
+
+@app.route('/admin/groupes/<int:gid>/enseignants', methods=['GET','POST'])
+@login_required
+def admin_groupe_enseignants(gid):
+    """Assigner les enseignants à un groupe (vue admin)."""
+    if not require_role('admin'): return redirect(url_for('dashboard'))
+    g = Groupe.query.get_or_404(gid)
+
+    if request.method == 'POST':
+        # Supprimer les anciennes affectations
+        GroupEnseignant.query.filter_by(groupe_id=gid).delete()
+
+        # Ajouter les nouvelles
+        enseignant_ids = request.form.getlist('enseignant_ids')
+        for eid in enseignant_ids:
+            try:
+                eid_int = int(eid)
+            except:
+                continue
+            # Vérifier que l'utilisateur existe et est bien enseignant
+            user = User.query.get(eid_int)
+            if user and user.role == 'enseignant':
+                db.session.add(GroupEnseignant(groupe_id=gid, enseignant_id=eid_int))
+        db.session.commit()
+        flash('Affectations mises à jour ! ✅', 'success')
+        return redirect(url_for('admin_groupes'))
+
+    # GET : lister les enseignants affectés et tous les enseignants disponibles
+    enseignants_affectes = [ge.enseignant_id for ge in g.enseignants]
+    tous_enseignants = User.query.filter_by(role='enseignant', actif=True).order_by(User.nom).all()
+    return render_template('admin/admin_groupe_enseignants.html',
+                           groupe=g,
+                           enseignants_affectes=enseignants_affectes,
+                           tous_enseignants=tous_enseignants)
+
+# ── GESTION MATIÈRES
+
 
 @app.route('/admin/matieres')
 @login_required
@@ -524,16 +687,28 @@ def teacher_cours_creer_deposer():
     if not require_role('enseignant'):
         return redirect(url_for('dashboard'))
 
-    matieres = Matiere.query.filter_by(actif=True).order_by(Matiere.nom).all()
+    matieres = Matiere.query.join(EnseignantMatiere, Matiere.id==EnseignantMatiere.matiere_id).filter(
+        EnseignantMatiere.enseignant_id==current_user.id,
+        Matiere.actif==True
+    ).order_by(Matiere.nom).all()
 
     if request.method == 'POST':
+        matiere_id = request.form.get('matiere_id') or None
+
+        # bloquer un choix de matière non autorisée
+        if matiere_id:
+            ok = EnseignantMatiere.query.filter_by(enseignant_id=current_user.id, matiere_id=int(matiere_id)).first()
+            if not ok:
+                flash('Vous ne pouvez pas choisir cette matière.', 'danger')
+                return redirect(url_for('teacher_cours_creer_deposer'))
+
         # 1) Créer le cours
         niveau = request.form.get('niveau','Débutant').strip()
         c = Cours(
             titre=request.form.get('titre','').strip(),
             description=request.form.get('description','').strip(),
             niveau=niveau,
-            matiere_id=request.form.get('matiere_id') or None,
+            matiere_id=matiere_id,
             publie='publie' in request.form,
             enseignant_id=current_user.id
         )
@@ -620,20 +795,37 @@ def teacher_dashboard():
 @login_required
 def teacher_cours_creer():
     if not require_role('enseignant'): return redirect(url_for('dashboard'))
+
+    # matières autorisées pour cet enseignant
+    matieres_autorisees = Matiere.query.join(EnseignantMatiere, Matiere.id==EnseignantMatiere.matiere_id).filter(
+        EnseignantMatiere.enseignant_id==current_user.id,
+        Matiere.actif==True
+    ).order_by(Matiere.nom).all()
+
     if request.method == 'POST':
+        matiere_id = request.form.get('matiere_id') or None
+
+        # bloquer un choix de matière non autorisée
+        if matiere_id:
+            ok = EnseignantMatiere.query.filter_by(enseignant_id=current_user.id, matiere_id=int(matiere_id)).first()
+            if not ok:
+                flash('Vous ne pouvez pas choisir cette matière.', 'danger')
+                return redirect(url_for('teacher_cours_creer'))
+
         c = Cours(
             titre         = request.form.get('titre','').strip(),
             description   = request.form.get('description','').strip(),
             niveau        = request.form.get('niveau','Débutant'),
-            matiere_id    = request.form.get('matiere_id') or None,
+            matiere_id    = matiere_id,
             publie        = 'publie' in request.form,
             enseignant_id = current_user.id
         )
         db.session.add(c); db.session.commit()
         flash('Cours créé ! ✅', 'success')
         return redirect(url_for('teacher_cours_contenu', cid=c.id))
-    matieres = Matiere.query.filter_by(actif=True).order_by(Matiere.nom).all()
-    return render_template('teacher/teacher_cours_form.html', cours=None, matieres=matieres)
+
+    return render_template('teacher/teacher_cours_form.html', cours=None, matieres=matieres_autorisees)
+
 
 @app.route('/teacher/cours/<int:cid>/editer', methods=['GET','POST'])
 @login_required
@@ -642,17 +834,34 @@ def teacher_cours_editer(cid):
     c = Cours.query.get_or_404(cid)
     if c.enseignant_id != current_user.id:
         flash('Accès refusé.', 'danger'); return redirect(url_for('dashboard'))
+
+    # matières autorisées pour cet enseignant
+    matieres_autorisees = Matiere.query.join(EnseignantMatiere, Matiere.id==EnseignantMatiere.matiere_id).filter(
+        EnseignantMatiere.enseignant_id==current_user.id,
+        Matiere.actif==True
+    ).order_by(Matiere.nom).all()
+
     if request.method == 'POST':
+        matiere_id = request.form.get('matiere_id') or None
+
+        # bloquer un choix de matière non autorisée
+        if matiere_id:
+            ok = EnseignantMatiere.query.filter_by(enseignant_id=current_user.id, matiere_id=int(matiere_id)).first()
+            if not ok:
+                flash('Vous ne pouvez pas choisir cette matière.', 'danger')
+                return redirect(url_for('teacher_cours_editer', cid=cid))
+
         c.titre       = request.form.get('titre', c.titre).strip()
         c.description = request.form.get('description', c.description).strip()
         c.niveau      = request.form.get('niveau', c.niveau)
-        c.matiere_id  = request.form.get('matiere_id') or None
+        c.matiere_id  = matiere_id
         c.publie      = 'publie' in request.form
         db.session.commit()
         flash('Cours mis à jour. ✅', 'success')
         return redirect(url_for('teacher_cours_contenu', cid=cid))
-    matieres = Matiere.query.filter_by(actif=True).order_by(Matiere.nom).all()
-    return render_template('teacher/teacher_cours_form.html', cours=c, matieres=matieres)
+
+    return render_template('teacher/teacher_cours_form.html', cours=c, matieres=matieres_autorisees)
+
 
 @app.route('/teacher/cours/<int:cid>/supprimer', methods=['POST'])
 @login_required
@@ -829,7 +1038,15 @@ def liste_cours():
     if niveau:     query = query.filter_by(niveau=niveau)
     # Filtrage par groupe pour les élèves
     if current_user.role == 'eleve' and current_user.groupe_id is not None:
-        query = query.filter_by(groupe_id=current_user.groupe_id)
+        # Récupérer les IDs des enseignants affectés au groupe de l'élève
+        enseignant_ids = [
+            ge.enseignant_id for ge in GroupEnseignant.query.filter_by(groupe_id=current_user.groupe_id).all()
+        ]
+        if enseignant_ids:
+            query = query.filter(Cours.enseignant_id.in_(enseignant_ids))
+        else:
+            # Aucun enseignant affecté → aucun cours visible
+            query = query.filter(Cours.id == 0)  # forcément vide
     cours     = query.order_by(Cours.date_creation.desc()).all()
     matieres  = Matiere.query.filter_by(actif=True).order_by(Matiere.nom).all()
     inscriptions_ids = [i.cours_id for i in current_user.inscriptions] if current_user.role=='eleve' else []
@@ -863,9 +1080,14 @@ def cours_inscrire(cid):
 @login_required
 def cours_apprendre(cid):
     c = Cours.query.get_or_404(cid)
-    if current_user.role == 'eleve' and current_user.groupe_id is not None and c.groupe_id is not None and c.groupe_id != current_user.groupe_id:
-        flash('Accès refusé pour ce cours (groupe incompatible).', 'danger')
-        return redirect(url_for('cours_detail', cid=cid))
+    if current_user.role == 'eleve' and current_user.groupe_id is not None:
+        # Vérifier que le cours est enseigné par un enseignant affecté au groupe de l'élève
+        enseignant_ids = [
+            ge.enseignant_id for ge in GroupEnseignant.query.filter_by(groupe_id=current_user.groupe_id).all()
+        ]
+        if enseignant_ids and c.enseignant_id not in enseignant_ids:
+            flash('Accès refusé pour ce cours (aucun enseignant de votre groupe n\'enseigne ce cours).', 'danger')
+            return redirect(url_for('cours_detail', cid=cid))
     if current_user.role == 'eleve':
         insc = Inscription.query.filter_by(eleve_id=current_user.id, cours_id=cid).first()
         if not insc:
@@ -934,12 +1156,14 @@ def student_calendrier():
 @app.route('/download/<path:filename>')
 @login_required
 def download_file(filename):
+
     # Enseignant/admin: libre (auth seulement)
     if current_user.role in ('admin', 'enseignant'):
         return send_from_directory(app.config['UPLOAD_FOLDER'], filename, as_attachment=True)
 
     # Élève: sécurité stricte (ne pas exposer n'importe quel fichier)
     if current_user.role == 'eleve':
+
         r = Ressource.query.filter_by(nom_fichier=filename).first()
         t = None
         if not r:
@@ -1033,26 +1257,22 @@ def inject_globals():
 
 def init_db():
     with app.app_context():
-        # Migration SQLite minimale : ajouter les colonnes manquantes sans casser l’existant
-        # (pas une vraie migration, mais évite l’erreur « no such column » après changement de modèle)
+        # Créer toutes les tables (sécurisé : ignore si existantes)
         db.create_all()
-        # Migration SQLite : ajouter les colonnes manquantes (si nécessaire)
+
+        # Migration SQLite : ajouter groupe_id si manquant (safe)
         if db.engine.dialect.name == 'sqlite':
             inspector = db.inspect(db.engine)
-            cols = []
             try:
                 cols = [c['name'] for c in inspector.get_columns('user')]
             except Exception:
                 cols = []
-            # SQLAlchemy peut encore utiliser l’ancienne table tant qu’elle n’est pas reflétée.
-            # On force une réexécution/refresh du schéma SQLAlchemy après ALTER.
             if 'groupe_id' not in cols:
                 try:
                     db.engine.execute('ALTER TABLE user ADD COLUMN groupe_id INTEGER')
-                    db.session.remove()
-                    db.reflect()
                 except Exception:
                     pass
+
 
 
 

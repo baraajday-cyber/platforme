@@ -17,7 +17,7 @@
   --radius:16px; --radius-sm:10px;
 }
 *{box-sizing:border-box}
-body{font-family:'Nunito',sans-serif;background:var(--light);color:var(--ink);overflow-x:hidden;padding-top:67px}
+body{font-family:'Nunito',sans-serif;background:var(--light);color:var(--ink);overflow-x:hidden}
 ::-webkit-scrollbar{width:7px}
 ::-webkit-scrollbar-thumb{background:var(--sky);border-radius:10px}
 
@@ -174,7 +174,7 @@ footer::before{content:'';display:block;height:4px;
 </style>
 {% block extra_css %}{% endblock %}
 </head>
-<body>
+<body style="padding-top:{{ '0' if current_user.is_authenticated else '67px' }}">
 
 {% if current_user.is_authenticated %}
 <!-- SIDEBAR -->
@@ -201,8 +201,10 @@ footer::before{content:'';display:block;height:4px;
   <a href="{{ url_for('admin_calendrier') }}" class="{{ 'active' if request.endpoint=='admin_calendrier' }}">📅 Calendrier</a>
   <div class="nav-section">Gestion</div>
   <a href="{{ url_for('admin_users') }}" class="{{ 'active' if request.endpoint in ['admin_users','admin_user_creer','admin_user_editer'] }}">👥 Utilisateurs</a>
+  <a href="{{ url_for('admin_groupes') }}" class="{{ 'active' if request.endpoint in ['admin_groupes','admin_groupe_creer','admin_groupe_editer','admin_groupe_supprimer','admin_groupe_enseignants'] }}">🏷️ Groupes</a>
   <a href="{{ url_for('admin_matieres') }}" class="{{ 'active' if request.endpoint in ['admin_matieres','admin_matiere_creer','admin_matiere_editer'] }}">📚 Matières</a>
   <a href="{{ url_for('admin_annonces') }}" class="{{ 'active' if request.endpoint=='admin_annonces' }}">📢 Annonces</a>
+
   <div class="nav-section">Commun</div>
   <a href="{{ url_for('liste_cours') }}">🔍 Voir les cours</a>
 
