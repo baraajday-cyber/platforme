@@ -1,0 +1,75 @@
+{% extends "base.html" %}
+{% block title %}📋 Inscriptions — Admin{% endblock %}
+{% block content %}
+<div class="page-header">
+  <div class="container">
+    <h2>📋 Gestion des inscriptions</h2>
+    <p style="color:rgba(255,255,255,.6);font-weight:600;margin:4px 0 0">Gérez l'accès des élèves aux cours (statut payé)</p>
+  </div>
+</div><!-- /page-header -->
+<div class="container-fluid px-4 pb-5">
+  <!-- Filtres -->
+  <div class="card-fun p-4 mb-4">
+    <form method="GET" class="row g-3 align-items-end">
+      <div class="col-md-5">
+        <label class="lbl">🔍 Rechercher (élève)</label>
+        <input type="text" name="q" class="form-control-fun" placeholder="Nom, prénom, email..." value="{{ q }}">
+      </div>
+      <div class="col-md-3">
+        <label class="lbl">💳 Statut</label>
+        <select name="statut" class="form-select-fun">
+          <option value="">Tous</option>
+          <option value="paye" {{ 'selected' if statut=='paye' }}>✅ Payé / Accès accordé</option>
+          <option value="non_paye" {{ 'selected' if statut=='non_paye' }}>⏳ Non payé / Accès bloqué</option>
+        </select>
+      </div>
+      <div class="col-md-2">
+        <button type="submit" class="btn btn-fun btn-sky w-100 fw-800">Filtrer</button>
+      </div>
+      <div class="col-md-2 text-end">
+        <a href="{{ url_for('admin_inscriptions') }}" class="btn btn-fun btn-outline-fun w-100">↺ Réinitialiser</a>
+      </div>
+    </form>
+  </div>
+
+  <div class="table-fun">
+    <table class="table mb-0">
+      <thead>
+        <tr><th>Élève</th><th>Cours</th><th>Date inscription</th><th>Statut d'accès</th><th>Payé le</th><th>Action</th></tr>
+      </thead>
+      <tbody>
+        {% for insc in inscriptions %}
+        <tr>
+          <td>
+            <div class="fw-800">{{ insc.eleve.prenom }} {{ insc.eleve.nom }}</div>
+            <div class="text-muted small fw-600">{{ insc.eleve.email }}</div>
+          </td>
+          <td class="fw-600 small">{{ insc.cours.titre[:40] }}</td>
+          <td class="text-muted small fw-600">{{ insc.date_inscription.strftime('%d/%m/%Y %H:%M') }}</td>
+          <td>
+            {% if insc.paid %}
+            <span class="badge-fun badge-publie">✅ Accès accordé</span>
+            {% else %}
+            <span class="badge-fun" style="background:#fee2e2;color:#991b1b">⏳ En attente</span>
+            {% endif %}
+          </td>
+          <td class="text-muted small fw-600">
+            {% if insc.paid_at %}{{ insc.paid_at.strftime('%d/%m/%Y %H:%M') }}{% else %}—{% endif %}
+          </td>
+          <td>
+            <form method="POST" action="{{ url_for('admin_inscription_toggle_paid', iid=insc.id) }}">
+              {% if insc.paid %}
+              <button type="submit" class="btn btn-fun btn-sm btn-danger-fun" onclick="return confirm('Révoquer l\'accès pour cet élève ?')">🔒 Révoquer</button>
+              {% else %}
+              <button type="submit" class="btn btn-fun btn-sm btn-mint" onclick="return confirm('Accorder l\'accès (payé) pour cet élève ?')">✅ Accorder</button>
+              {% endif %}
+            </form>
+          </td>
+        </tr>
+        {% else %}
+        <tr><td colspan="6" class="text-center py-4 text-muted fw-600">📭 Aucune inscription trouvée</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+{% endblock %}

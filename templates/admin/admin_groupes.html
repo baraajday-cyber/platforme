@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% block title %}🏷️ Groupes — Admin{% endblock %}
+{% block content %}
+<div class="page-header">
+  <div class="container">
+    <h2>🏷️ Gestion des groupes</h2>
+  </div>
+</div>
+<div class="container-fluid px-4 pb-5">
+  <div class="d-flex justify-content-end mb-4">
+    <a href="{{ url_for('admin_groupe_creer') }}" class="btn btn-fun btn-coral fw-800">➕ Nouveau groupe</a>
+  </div>
+
+  <div class="row g-4">
+    {% for g in groupes %}
+    <div class="col-md-4 col-sm-6">
+      <div class="card-fun p-4 text-center">
+        <div class="fw-900" style="font-size:1.4rem">👥</div>
+        <h5 class="fw-800 mt-2 mb-1">{{ g.nom }}</h5>
+        {% if g.description %}
+          <p class="text-muted small fw-600 mb-3">{{ g.description[:80] }}{% if g.description|length>80 %}...{% endif %}</p>
+        {% endif %}
+        <span class="badge-fun {{ 'badge-publie' if g.actif else 'badge-brouillon' }} mb-3 d-block">{{ '✅ Actif' if g.actif else '🚫 Inactif' }}</span>
+        <div class="d-flex gap-2 justify-content-center flex-wrap">
+          <a href="{{ url_for('admin_groupe_editer', gid=g.id) }}" class="btn btn-fun btn-sky btn-sm">✏️</a>
+          <a href="{{ url_for('admin_groupe_enseignants', gid=g.id) }}" class="btn btn-fun btn-mint btn-sm">👨‍🏫 Ens.</a>
+          <form method="POST" action="{{ url_for('admin_groupe_supprimer', gid=g.id) }}" onsubmit="return confirm('Supprimer ce groupe ?');">
+            <button type="submit" class="btn btn-fun btn-coral btn-sm">🗑️</button>
+          </form>
+        </div>
+      </div>
+    </div>
+    {% else %}
+    <div class="col-12 text-center py-5">
+      <div style="font-size:4rem;margin-bottom:12px">📭</div>
+      <h5 class="fw-800 mb-3">Aucun groupe</h5>
+      <a href="{{ url_for('admin_groupe_creer') }}" class="btn btn-fun btn-coral">➕ Créer le premier</a>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+{% endblock %}
+

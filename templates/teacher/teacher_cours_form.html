@@ -21,6 +21,7 @@
           {% for m in matieres %}<option value="{{ m.id }}" {{ 'selected' if cours and cours.matiere_id==m.id }}>{{ m.icone }} {{ m.nom }}</option>{% endfor %}
         </select>
       </div>
+
       <div class="col-md-6">
         <label class="lbl">📊 Niveau</label>
         <select name="niveau" class="form-select-fun">

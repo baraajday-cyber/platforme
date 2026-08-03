@@ -66,11 +66,20 @@
           {% if r.nom_fichier %}
           <!-- Visionner inline -->
           <button class="btn btn-fun btn-coral btn-sm fw-800" onclick="togglePdf('pdf-{{ r.id }}')">👁️ Visionner</button>
-          <a href="{{ url_for('download_file', filename=r.nom_fichier) }}" class="btn btn-fun btn-outline-fun btn-sm fw-700">⬇️ Télécharger</a>
+
+          <!-- Téléchargement + progression (pour vidéos locales; PDF/ressources restent classiques) -->
+          {% if r.type_fichier == 'video' %}
+            <button class="btn btn-fun btn-outline-fun btn-sm fw-700" type="button" onclick="downloadWithProgress('{{ url_for('download_file', filename=r.nom_fichier) }}','dl-{{ r.id }}')">⬇️ Télécharger</button>
+            <div id="dl-{{ r.id }}" class="ms-2" style="min-width:110px"></div>
+          {% else %}
+            <a href="{{ url_for('download_file', filename=r.nom_fichier) }}" class="btn btn-fun btn-outline-fun btn-sm fw-700">⬇️ Télécharger</a>
+          {% endif %}
+
           {% elif r.url_externe %}
           <a href="{{ r.url_externe }}" target="_blank" class="btn btn-fun btn-coral btn-sm fw-800">🔗 Ouvrir</a>
           {% endif %}
         </div>
+
       </div>
       {% if r.nom_fichier %}
       <div id="pdf-{{ r.id }}" style="display:none;margin-bottom:16px;border-radius:14px;overflow:hidden">
@@ -235,5 +244,77 @@ function togglePdf(id) {
   const el = document.getElementById(id);
   el.style.display = el.style.display === 'none' ? 'block' : 'none';
 }
+
+async function downloadWithProgress(url, containerId) {
+  const el = document.getElementById(containerId);
+  el.innerHTML = '';
+
+  // UI barre progression
+  const bar = document.createElement('div');
+  bar.style.background = '#f1f5f9';
+  bar.style.borderRadius = '999px';
+  bar.style.padding = '4px';
+  bar.style.marginTop = '6px';
+  bar.style.border = '1px solid #e5e7eb';
+
+  const inner = document.createElement('div');
+  inner.style.height = '10px';
+  inner.style.width = '0%';
+  inner.style.background = 'linear-gradient(90deg,var(--sky),var(--mint))';
+  inner.style.borderRadius = '999px';
+  inner.style.transition = 'width 120ms linear';
+
+  const txt = document.createElement('div');
+  txt.style.fontSize = '12px';
+  txt.style.fontWeight = '800';
+  txt.style.color = 'rgba(15,23,42,.8)';
+  txt.style.marginTop = '6px';
+  txt.textContent = '0%';
+
+  bar.appendChild(inner);
+  el.appendChild(bar);
+  el.appendChild(txt);
+
+  try {
+    const res = await fetch(url);
+    if (!res.ok) throw new Error('Téléchargement refusé');
+
+    const total = Number(res.headers.get('content-length') || 0);
+    const reader = res.body.getReader();
+    let received = 0;
+    const chunks = [];
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      chunks.push(value);
+      received += value.length;
+
+      if (total > 0) {
+        const pct = Math.round((received / total) * 100);
+        inner.style.width = pct + '%';
+        txt.textContent = pct + '%';
+      } else {
+        // fallback sans content-length
+        const pct = Math.min(99, Math.round(received / 1024 / 1024));
+        txt.textContent = 'Téléchargement...';
+      }
+    }
+
+    // Construire le fichier à télécharger
+    const blob = new Blob(chunks);
+    const downloadUrl = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = downloadUrl;
+    a.download = '';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(downloadUrl);
+  } catch (e) {
+    el.innerHTML = '<span style="color:#b91c1c;font-weight:900">Erreur</span>';
+  }
+}
+
 </script>
 {% endblock %}

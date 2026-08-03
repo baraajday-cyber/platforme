@@ -48,6 +48,37 @@
         </select>
         <div class="text-muted small fw-600 mt-1">Pour restreindre l’accès des élèves aux cours compatibles.</div>
       </div>
+
+      <div class="col-12" id="bloc-matieres" style="display:{{ 'block' if user and user.role=='enseignant' else 'none' }}">
+        <label class="lbl">📚 Matière (enseignant) *</label>
+        <select name="matiere_id" class="form-select-fun" {{ 'required' if not user }}>
+          <option value="">— Sélectionner une matière —</option>
+          {% for m in matieres or [] %}
+            {% set is_assoc = false %}
+            {% if user and user.role=='enseignant' %}
+              {% for assoc in (user.enseigne_matiere_associees or []) %}
+                {% if assoc.matiere_id==m.id %}{% set is_assoc=true %}{% endif %}
+              {% endfor %}
+            {% endif %}
+            <option value="{{ m.id }}" {{ 'selected' if is_assoc }}>{{ m.icone }} {{ m.nom }}</option>
+          {% endfor %}
+        </select>
+        <div class="text-muted small fw-600 mt-1">L’enseignant ne peut créer/éditer des cours que pour cette matière. (1 seule)</div>
+      </div>
+
+      <script>
+        (function(){
+          const roleSel = document.querySelector('select[name="role"]');
+          const bloc = document.getElementById('bloc-matieres');
+          if(!roleSel || !bloc) return;
+          function sync(){
+            bloc.style.display = roleSel.value === 'enseignant' ? 'block' : 'none';
+          }
+          roleSel.addEventListener('change', sync);
+          sync();
+        })();
+      </script>
+
       <div class="col-12">
         <label class="lbl">🔒 {{ 'Nouveau mot de passe' if user else 'Mot de passe *' }}</label>
         <input type="password" name="{{ 'new_password' if user else 'password' }}" class="form-control-fun"

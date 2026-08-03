@@ -198,8 +198,28 @@ class Annonce(db.Model):
 #                      HELPERS
 # ═══════════════════════════════════════════════════════════
 
+def to_int(value, default=None):
+    """Convertit une valeur en entier de façon sûre (jamais d'exception)."""
+    try:
+        if value is None or value == '':
+            return default
+        return int(value)
+    except (ValueError, TypeError):
+        return default
+
+
+def to_float(value, default=0.0):
+    """Convertit une valeur en float de façon sûre (jamais d'exception)."""
+    try:
+        if value is None or value == '':
+            return default
+        return float(value)
+    except (ValueError, TypeError):
+        return default
+
+
 @login_manager.user_loader
-def load_user(uid): return User.query.get(int(uid))
+def load_user(uid): return User.query.get(to_int(uid))
 
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
@@ -382,14 +402,28 @@ def admin_user_editer(uid):
     user = User.query.get_or_404(uid)
 
     if request.method == 'POST':
-        user.nom    = request.form.get('nom', user.nom).strip()
-        user.prenom = request.form.get('prenom', user.prenom).strip()
-        user.email  = request.form.get('email', user.email).strip()
-        user.role   = request.form.get('role', user.role)
-        user.actif  = 'actif' in request.form
-        user.groupe_id = request.form.get('groupe_id') or None
-
         nouveau_mdp = request.form.get('new_password','').strip()
+
+        # Vérifier l'unicité de l'e-mail (hors compte actuel)
+        new_email = request.form.get('email', user.email).strip()
+        doublon = User.query.filter(User.email == new_email, User.id != uid).first()
+        if doublon:
+            flash('Email déjà utilisé par un autre compte.', 'danger')
+            return redirect(url_for('admin_user_editer', uid=uid))
+
+        nouveau_role = request.form.get('role', user.role)
+
+        # Nettoyer les associations matière si le rôle enseignant est quitté
+        if user.role == 'enseignant' and nouveau_role != 'enseignant':
+            EnseignantMatiere.query.filter_by(enseignant_id=user.id).delete()
+
+        user.nom        = request.form.get('nom', user.nom).strip()
+        user.prenom     = request.form.get('prenom', user.prenom).strip()
+        user.email      = new_email
+        user.role       = nouveau_role
+        user.actif      = 'actif' in request.form
+        user.groupe_id  = request.form.get('groupe_id') or None
+
         if nouveau_mdp:
             if len(nouveau_mdp) < 6:
                 flash('Mot de passe trop court.', 'danger')
@@ -487,6 +521,9 @@ def admin_groupe_editer(gid):
 def admin_groupe_supprimer(gid):
     if not require_role('admin'): return redirect(url_for('dashboard'))
     g = Groupe.query.get_or_404(gid)
+    # Détacher les élèves du groupe avant suppression (éviter clés orphelines)
+    User.query.filter_by(groupe_id=gid).update({'groupe_id': None})
+    # Les affectations enseignant↔groupe sont supprimées via cascade (delete-orphan)
     db.session.delete(g)
     db.session.commit()
     flash('Groupe supprimé.', 'success')
@@ -575,6 +612,11 @@ def admin_matiere_editer(mid):
 def admin_matiere_supprimer(mid):
     if not require_role('admin'): return redirect(url_for('dashboard'))
     m = Matiere.query.get_or_404(mid)
+
+    # Détacher les cours liés (éviter les clés étrangères orphelines)
+    Cours.query.filter_by(matiere_id=mid).update({'matiere_id': None})
+    EnseignantMatiere.query.filter_by(matiere_id=mid).delete()
+
     db.session.delete(m); db.session.commit()
     flash('Matière supprimée.', 'success')
     return redirect(url_for('admin_matieres'))
@@ -606,6 +648,43 @@ def admin_annonce_supprimer(aid):
     flash('Annonce supprimée.', 'success')
     return redirect(url_for('admin_annonces'))
 
+# ── GESTION INSCRIPTIONS (accès étudiants) ───────────────────
+
+@app.route('/admin/inscriptions')
+@login_required
+def admin_inscriptions():
+    """Vue admin : gérer les inscriptions des élèves (accès payé / gratuit)."""
+    if not require_role('admin'): return redirect(url_for('dashboard'))
+
+    q = request.args.get('q', '').strip()
+    statut = request.args.get('statut', '')  # 'paye' | 'non_paye' | ''
+
+    query = Inscription.query.join(User, Inscription.eleve_id == User.id)
+    if q:
+        query = query.filter(
+            User.nom.ilike(f'%{q}%') | User.prenom.ilike(f'%{q}%') | User.email.ilike(f'%{q}%')
+        )
+    if statut == 'paye':
+        query = query.filter(Inscription.paid == True)  # noqa: E712
+    elif statut == 'non_paye':
+        query = query.filter(Inscription.paid == False)  # noqa: E712
+
+    inscriptions = query.order_by(Inscription.date_inscription.desc()).all()
+    return render_template('admin/admin_inscriptions.html',
+                           inscriptions=inscriptions, q=q, statut=statut)
+
+@app.route('/admin/inscriptions/<int:iid>/toggle_paid', methods=['POST'])
+@login_required
+def admin_inscription_toggle_paid(iid):
+    """Bascule le statut 'payé' d'une inscription (donne accès au contenu)."""
+    if not require_role('admin'): return redirect(url_for('dashboard'))
+    insc = Inscription.query.get_or_404(iid)
+    insc.paid = not insc.paid
+    insc.paid_at = datetime.utcnow() if insc.paid else None
+    db.session.commit()
+    flash(f'Accès {"accordé" if insc.paid else "révoqué"} pour {insc.eleve.prenom} {insc.eleve.nom} — {insc.cours.titre}. ✅', 'success')
+    return redirect(url_for('admin_inscriptions'))
+
 # ── CALENDRIER ADMIN ─────────────────────────────────────────
 
 @app.route('/admin/calendrier')
@@ -625,13 +704,18 @@ def admin_seance_creer():
     except:
         flash('Date invalide.', 'danger')
         return redirect(url_for('admin_calendrier'))
+    cours_id = to_int(request.form.get('cours_id'))
+    if not cours_id:
+        flash('Cours invalide.', 'danger')
+        return redirect(url_for('admin_calendrier'))
+
     s = Seance(
         titre       = request.form.get('titre','').strip(),
         description = request.form.get('description','').strip(),
         date_seance = dt,
-        duree       = int(request.form.get('duree', 60)),
+        duree       = to_int(request.form.get('duree'), 60) or 60,
         lien_meet   = request.form.get('lien_meet','').strip(),
-        cours_id    = int(request.form.get('cours_id'))
+        cours_id    = cours_id
     )
     db.session.add(s); db.session.commit()
     flash('Séance planifiée ! ✅', 'success')
@@ -696,8 +780,12 @@ def teacher_cours_creer_deposer():
         matiere_id = request.form.get('matiere_id') or None
 
         # bloquer un choix de matière non autorisée
-        if matiere_id:
-            ok = EnseignantMatiere.query.filter_by(enseignant_id=current_user.id, matiere_id=int(matiere_id)).first()
+        mid_int = to_int(matiere_id)
+        if matiere_id and mid_int is None:
+            flash('Matière invalide.', 'danger')
+            return redirect(url_for('teacher_cours_creer_deposer'))
+        if mid_int:
+            ok = EnseignantMatiere.query.filter_by(enseignant_id=current_user.id, matiere_id=mid_int).first()
             if not ok:
                 flash('Vous ne pouvez pas choisir cette matière.', 'danger')
                 return redirect(url_for('teacher_cours_creer_deposer'))
@@ -806,8 +894,12 @@ def teacher_cours_creer():
         matiere_id = request.form.get('matiere_id') or None
 
         # bloquer un choix de matière non autorisée
-        if matiere_id:
-            ok = EnseignantMatiere.query.filter_by(enseignant_id=current_user.id, matiere_id=int(matiere_id)).first()
+        mid_int = to_int(matiere_id)
+        if matiere_id and mid_int is None:
+            flash('Matière invalide.', 'danger')
+            return redirect(url_for('teacher_cours_creer'))
+        if mid_int:
+            ok = EnseignantMatiere.query.filter_by(enseignant_id=current_user.id, matiere_id=mid_int).first()
             if not ok:
                 flash('Vous ne pouvez pas choisir cette matière.', 'danger')
                 return redirect(url_for('teacher_cours_creer'))
@@ -845,8 +937,12 @@ def teacher_cours_editer(cid):
         matiere_id = request.form.get('matiere_id') or None
 
         # bloquer un choix de matière non autorisée
-        if matiere_id:
-            ok = EnseignantMatiere.query.filter_by(enseignant_id=current_user.id, matiere_id=int(matiere_id)).first()
+        mid_int = to_int(matiere_id)
+        if matiere_id and mid_int is None:
+            flash('Matière invalide.', 'danger')
+            return redirect(url_for('teacher_cours_editer', cid=cid))
+        if mid_int:
+            ok = EnseignantMatiere.query.filter_by(enseignant_id=current_user.id, matiere_id=mid_int).first()
             if not ok:
                 flash('Vous ne pouvez pas choisir cette matière.', 'danger')
                 return redirect(url_for('teacher_cours_editer', cid=cid))
@@ -965,7 +1061,11 @@ def teacher_noter_rendu(rid):
     r = TravauxRendu.query.get_or_404(rid)
     if r.travail.cours.enseignant_id != current_user.id:
         flash('Accès refusé.', 'danger'); return redirect(url_for('dashboard'))
-    r.note     = float(request.form.get('note', 0))
+    note = to_float(request.form.get('note'), None)
+    if note is None:
+        flash('Note invalide.', 'danger')
+        return redirect(url_for('teacher_travail_rendus', tid=r.travail_id))
+    r.note     = note
     r.feedback = request.form.get('feedback','').strip()
     r.note_date = datetime.utcnow()
     db.session.commit()
@@ -1034,7 +1134,8 @@ def liste_cours():
     niveau    = request.args.get('niveau','')
     query     = Cours.query.filter_by(publie=True)
     if q:          query = query.filter(Cours.titre.ilike(f'%{q}%'))
-    if matiere_id: query = query.filter_by(matiere_id=int(matiere_id))
+    mid = to_int(matiere_id)
+    if mid:        query = query.filter_by(matiere_id=mid)
     if niveau:     query = query.filter_by(niveau=niveau)
     # Filtrage par groupe pour les élèves
     if current_user.role == 'eleve' and current_user.groupe_id is not None:
@@ -1057,6 +1158,10 @@ def liste_cours():
 @login_required
 def cours_detail(cid):
     c = Cours.query.get_or_404(cid)
+    # Bloquer l'accès aux cours non publiés pour les élèves
+    if current_user.role == 'eleve' and not c.publie:
+        flash('Ce cours n\'est pas disponible.', 'danger')
+        return redirect(url_for('liste_cours'))
     inscription = None
     if current_user.role == 'eleve':
         inscription = Inscription.query.filter_by(eleve_id=current_user.id, cours_id=cid).first()
@@ -1067,6 +1172,10 @@ def cours_detail(cid):
 def cours_inscrire(cid):
     if current_user.role != 'eleve':
         flash('Réservé aux élèves.', 'warning'); return redirect(url_for('cours_detail', cid=cid))
+    c = Cours.query.get_or_404(cid)
+    if not c.publie:
+        flash('Ce cours n\'est pas disponible à l\'inscription.', 'danger')
+        return redirect(url_for('liste_cours'))
     if not Inscription.query.filter_by(eleve_id=current_user.id, cours_id=cid).first():
         db.session.add(Inscription(eleve_id=current_user.id, cours_id=cid))
         db.session.commit()
@@ -1122,6 +1231,10 @@ def student_rendre_travail(tid):
     if current_user.role != 'eleve':
         flash('Réservé aux élèves.', 'warning'); return redirect(url_for('dashboard'))
     t = Travail.query.get_or_404(tid)
+    # Sécurité : l'élève doit être inscrit au cours du travail pour rendre
+    if not Inscription.query.filter_by(eleve_id=current_user.id, cours_id=t.cours_id).first():
+        flash('Inscription requise pour rendre ce travail.', 'warning')
+        return redirect(url_for('cours_detail', cid=t.cours_id))
     existant = TravauxRendu.query.filter_by(eleve_id=current_user.id, travail_id=tid).first()
     fname = save_upload('fichier')
     if existant:
@@ -1216,12 +1329,17 @@ def messages():
 @app.route('/messages/envoyer', methods=['POST'])
 @login_required
 def message_envoyer():
-    dest = request.form.get('destinataire_id')
+    dest = to_int(request.form.get('destinataire_id'))
     txt  = request.form.get('contenu','').strip()
     if dest and txt:
-        db.session.add(Message(contenu=txt, expediteur_id=current_user.id, destinataire_id=int(dest)))
-        db.session.commit()
-        flash('Message envoyé ! ✉️', 'success')
+        # Vérifier que le destinataire existe et est actif
+        destinataire = User.query.get(dest)
+        if destinataire and destinataire.actif:
+            db.session.add(Message(contenu=txt, expediteur_id=current_user.id, destinataire_id=dest))
+            db.session.commit()
+            flash('Message envoyé ! ✉️', 'success')
+        else:
+            flash('Destinataire invalide.', 'danger')
     return redirect(url_for('messages'))
 
 # ═══════════════════════════════════════════════════════════
@@ -1256,6 +1374,9 @@ def inject_globals():
     return {'now': datetime.utcnow, 'current_year': datetime.utcnow().year}
 
 def init_db():
+    # Désactivable en test via variable d'environnement
+    if os.environ.get('BRAINBURST_NO_INIT'):
+        return
     with app.app_context():
         # Créer toutes les tables (sécurisé : ignore si existantes)
         db.create_all()
@@ -1295,6 +1416,10 @@ def init_db():
         print('Base de données prête.')
         print('Ouvrez http://localhost:5000')
 
+# Initialisation automatique de la base (tables + admin par défaut).
+# Exécutée au chargement du module → compatible `gunicorn app:app` (Render/Procfile).
+# En test, mettre BRAINBURST_NO_INIT=1 pour éviter de créer l'admin sur la DB de prod.
+init_db()
+
 if __name__ == '__main__':
-    init_db()
     app.run(debug=True, port=5000)
